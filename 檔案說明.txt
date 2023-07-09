@@ -1,0 +1,55 @@
+==== bingoSpider 整合 ball_no ====
+
+* 爬蟲程式為 bingo.py，使用 selenium 抓取開獎號碼
+* 電腦須有 chrome 瀏覽器，並安裝 selenium 的 webdriver
+* 執行 ball_no.py, 當 new_data = True 時會抓取當天當開獎號碼，存放於 mongodb
+        import bingo    # 載入 bingo.py
+        bingo.bingo()   # 抓取當天當開獎號碼
+* 相同的球號配對 (1,1), (2,2)不予分析，因為沒有意義；(1,2), (2,1)的分析結果是一樣的，也不予分析。
+
+==== replica set 的 mongodb ====
+
+出現以下錯誤信息時，須執行帶有 replica set 的 mongodb
+Mongodb v4.0 Transaction, MongoError: Transaction numbers are only allowed on a replica set member or mongos
+說明如下...
+https://stackoverflow.com/questions/51461952/mongodb-v4-0-transaction-mongoerror-transaction-numbers-are-only-allowed-on-a
+0. shutdown原來的mongodb
+1. npm install run-rs -g
+2. run-rs -v 4.0.0 --shell
+
+==== 關於 ball no ====
+
+ball_no.py: 主程式以及 class Ball_no 定義
+ball_no.json: 資料庫設定
+ball_no.log: 計算過程輸出 log
+
+==== 關於 convert ====
+
+convert.py
+    主要程式：從這裡開始執行
+
+convert.json
+    程式設定檔
+
+convert.log
+    程式執行時輸出的日誌檔
+
+json_config.py
+    處理【程式設定檔】的模組
+
+db.py
+    處理【資料庫】的模組
+
+查看設定檔所在
+執行 mongo
+指令 db.serverCmdLineOpts()
+
+db.shutdownServer()
+
+重啟 mongodb
+brew services restart mongodb-community@4.4
+
+MongoDB 透過 lookup pipeline 實踐 Left Join
+https://mlwmlw.org/2018/10/mongodb-left-join/
+https://www.cnblogs.com/duhuo/p/6068879.html
+
