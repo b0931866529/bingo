@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 import traceback
-
+from bson import ObjectId
 import pymongo
 import sys, logging
 from pymongo import InsertOne, DeleteOne, ReplaceOne
@@ -48,26 +48,29 @@ class MongoDbContext(IDbContext):
         return cls( DBIP, DBName)
 
     # 批量插入
-    def Insert(self, DBCollection, DBData):
+    def Insert(self, DBCollection,DBData):
         # 判斷如果是空的 List 就什麼都不做
-        db_size = len( DBData)
-        if db_size < 1:
-            print( "插入筆數:", db_size)
-            return
+        # db_size = len( DBData)
+        # if db_size < 1:
+        #     print( "插入筆數:", db_size)
+        #     return
 
         collection = self.__mongoDB[ DBCollection]
-        insert_session = self.__client.start_session( causal_consistency=True)
-        try:
-            insert_session.start_transaction( )
-            insert_result = collection.insert_many( DBData, session=insert_session)
-        except Exception as e:              # 例外
-            insert_session.abort_transaction()
-            self.setErr( e)
-        else:                               # 成功
-            print( "插入筆數:", len( insert_result.inserted_ids))
-            insert_session.commit_transaction( )
-        finally:
-            insert_session.end_session( )
+        insert_result = collection.insert_one(DBData)
+        return insert_result.inserted_id
+        # insert_session = self.__client.start_session( causal_consistency=True)
+        # try:
+        #     insert_session.start_transaction( )
+        #     insert_result = collection.insert_one( DBData, session=insert_session)
+        #     # insert_result = collection.insert_many( DBData, session=insert_session)
+        # except Exception as e:              # 例外
+        #     insert_session.abort_transaction()
+        #     self.setErr( e)
+        # else:                               # 成功
+        #     print( "插入筆數:", len( insert_result.inserted_ids))
+        #     insert_session.commit_transaction( )
+        # finally:
+        #     insert_session.end_session( )
 
     def Insert_BulkWrite(self, DBCollection, BulkRequests):
         collection = self.__mongoDB[ DBCollection]
@@ -85,7 +88,8 @@ class MongoDbContext(IDbContext):
         finally:
             insert_session.end_session()
 
-    def Find(self, DBCollection, DBQuery):
+
+    def Find(self, DBCollection, DBQuery={}):
         collection = self.__mongoDB[ DBCollection]
         find_result = {}
         try:
@@ -139,22 +143,34 @@ if __name__ == '__main__':
         pass
 
     # 宣告資料庫
-    db = MongoDbContext( "localhost", "test_db")
+    db = MongoDbContext( "localhost", "testDb")
+    table = "test"
+    # queryKey = {'_id': ObjectId("64efc7c3cbe4c926355f0b66")}
 
-    # 插入數據
-    insert_list = [
-        { "_id": 1, "Term": 1,   "Left": "left", "Middle": "middle", "Right": "right" },
-        { "_id": 2, "Term": 2,   "Left": "left", "Middle": "middle", "Right": "right" },
-        { "_id": 3, "Term": 3, "Left": "left", "Middle": "middle", "Right": "right"},
-    ]
-    db.Insert( "test_coll", insert_list)
+    #region test寫入數據
+    insert = {"112050345": "01,02,06,09,13,14,16,19,29,34,35,36,39,48,52,56,62,72,73,79",
+    "112050346": "01,02,06,09,13,14,16,19,29,34,35,36,39,48,52,56,62,72,73,79"}
+    _id = db.Insert( "test", insert)
+    #endregion
 
-    insert_list = [
-        { "_id": 4, "Term": 4,   "Left": "left", "Middle": "middle", "Right": "right" },
-        { "_id": 2, "Term": 2,   "Left": "left", "Middle": "middle", "Right": "right" },
-        { "_id": 6, "Term": 6, "Left": "left", "Middle": "middle", "Right": "right"},
-    ]
-    db.Insert( "test_coll", insert_list)
+    #region test用剛剛寫入_id查詢數據
+    # queryKey = {'price':36}
+    # queryKey = {'_id':ObjectId("631329283bac07676f9a2f84")}
+    queryKey = {'_id':_id}
+    result = db.Find("test",queryKey)
+    for bingo in result:
+        for key,value in bingo.items():
+            print(key,value)
+    #endregion
+
+
+
+    # insert_list = [
+    #     { "_id": 4, "Term": 4,   "Left": "left", "Middle": "middle", "Right": "right" },
+    #     { "_id": 2, "Term": 2,   "Left": "left", "Middle": "middle", "Right": "right" },
+    #     { "_id": 6, "Term": 6, "Left": "left", "Middle": "middle", "Right": "right"},
+    # ]
+    # db.Insert( "test_coll", insert_list)
 
     # 插入數據(只要【有1筆】插入失敗，就全部失敗)
     # bulk_requests = [
@@ -178,6 +194,6 @@ if __name__ == '__main__':
     # 刪除資料
     # delete_result = db.Delete( "test_coll", { "Term"})    # 失败测试
     # delete_result = db.Delete( "test_coll", { "Term": 4}) # 成功测试
-    
+
     # print( "db.Err():", db.Err())
     print( 'end')
