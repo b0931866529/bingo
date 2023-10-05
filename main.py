@@ -1,63 +1,132 @@
-import pandas as pd
-from collections import defaultdict
-from itertools import chain
-import statistics
+# -*- coding:utf-8 -*-
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+import time
+import json
+import db
+import bingoStatistics
 from itertools import combinations
+from bson import ObjectId
+from datetime import datetime
 
-numbers = list(range(1, 81))  # 生成 1 到 80 的数字列表
-combinations_array = list(combinations(numbers, 4))
-valid = len(combinations_array)
-bingoData = [
-    {'term':'1','balls':[1,2,3,4,5,10]},
-    {'term':'2','balls':[1,2,6,9,5,10]},
-    {'term':'3','balls':[1,8,3,4,5,10]},
-    {'term':'4','balls':[1,8,7,9,6,10]},
-    {'term':'5','balls':[9,8,3,6,5,10]},
-    {'term':'6','balls':[9,8,3,1,2,10]},
-    {'term':'7','balls':[9,8,3,1,2,10]},
-    {'term':'8','balls':[9,8,3,4,2,10]},
-]
-BALL_NUM = 6
-support :float
-max :int
-median_value :float
-
-input = [1,2]
-#region concat length filter whether match count support
-setConcat = list(map(lambda r:set(r['balls'] + input),bingoData))
-arrConcat = list(map(lambda r:list(r),setConcat))
-arrTermConcat = list(map(lambda x,y:{'term':y['term'],'balls':x},arrConcat,bingoData))
-arrFilter = list(filter(lambda r:len(r['balls']) == BALL_NUM,arrTermConcat))
-support = len(arrFilter) / len(bingoData)
-#endregion
-
-#region map term array map plus time array,count max、median
-arrIntTerm = list(map(lambda r:int(r['term']),arrFilter))
-arrIntTime = []
-i = 0
-for term in arrIntTerm:
-  if i !=0:
-    temp = arrIntTerm[i] - arrIntTerm[i-1]
-    arrIntTime.append(temp)
-  i = i+ 1
-
-max = max(arrIntTime)
-median_value = statistics.median(arrIntTime)
-#endregion
+# driver = webdriver.Chrome("./chromedriver")
+driver = webdriver.Chrome("C:/Programs/works/Test/chromedriver.exe")
 
 
+def print_dict(par_dict):
+    print(json.dumps(par_dict, indent=4))
 
 
-#array group dict key num value times
-#map number
-dictSupport = {}
-arr = list(map(lambda r: r['balls'],bingoData))
-arrFlat = list(chain.from_iterable(arr))
-for x in arrFlat:
-  if x in dictSupport.keys():
-    dictSupport[x] = dictSupport[x] + 1
-  else:
-    dictSupport[x] = 1
+# 存放抓取號碼
+bingo_no = {}
 
 
-print('')
+def bingo():
+    global bingo_no
+
+    # 開啟頁面
+    driver.get("https://www.taiwanlottery.com.tw/lotto/bingobingo/drawing.aspx")
+
+    # 取得頁面 title
+    title = driver.title
+    print("title:", title)
+    driver.implicitly_wait(30)
+    time.sleep(3)
+
+    # 按鈕【顯示當日所有期數】
+    submit_button = driver.find_element(by=By.ID, value="Button1")
+    submit_button.click()
+    # time.sleep( 3)
+
+    len_title = len("112001219")
+    len_no = len("01 03 07 10 11 17 18 20 23 31 35 42 45 50 52 55 57 70 76 79")
+
+    t_title = ""
+    for e in driver.find_elements(by=By.CLASS_NAME, value="tdA_3"):
+        t = e.text
+        if len(t) == len_title:
+            t_title = t
+        if len(t) == len_no:
+            if t_title != "":
+                bingo_no[t_title] = t.replace(" ", ",")
+
+    for e in driver.find_elements(by=By.CLASS_NAME, value="tdA_4"):
+        t = e.text
+        if len(t) == len_title:
+            t_title = t
+        if len(t) == len_no:
+            if t_title != "":
+                bingo_no[t_title] = t.replace(" ", ",")
+
+    bingo_no = dict(sorted(bingo_no.items()))
+
+    time.sleep(3)
+    driver.quit()
+
+
+def mapBingo(dict: {}):
+
+    return ''
+
+
+# 整合計算來源演算法進行回朔test
+if __name__ == '__main__':
+    # region 來源從網站
+    # bingo()
+    # dbContext = db.MongoDbContext("localhost", "testDb")
+    # table = "test"
+    # currentDate = datetime.now()
+    # bingo_no['currentDate'] = currentDate
+    # _id = dbContext.Insert(table, bingo_no)
+    # queryKey = {'_id': _id}
+    # result = dbContext.Find(table, queryKey)
+    # bingo = result[0]
+    # endregion
+
+    # region 來源網站已經寫入DB從DB
+    dbContext = db.MongoDbContext("localhost", "testDb")
+    table = "test"
+    # 此處GUID值自行抽換
+    queryKey = {'_id': ObjectId("650ab98f43f4ffce3f8136eb")}
+    result = dbContext.Find(table, queryKey)
+    bingo = result[0]
+    # endregion
+
+    # region 將bingo => term,ball 型別
+
+    # example:calcuBingo = [
+    #     {'term':'1','balls':[1,2,9,11,12,13,15,18,23,25,30,32,35,36,48,53,59,61,67,80,15]},
+    #     {'term':'2','balls':[1,2,3,6,9,11,12,14,22,26,28,33,40,43,44,45,49,50,54,69,49]},
+    #     {'term':'3','balls':[10,13,31,38,43,47,48,49,52,53,56,60,64,66,72,73,76,77,79,80,77]},
+    # ]
+    del bingo['_id']
+    del bingo['currentDate']
+    intKeys = map(lambda r: int(r), bingo)
+    term = min(intKeys) - 1
+    i = 1
+    calcuBingo = []
+    for key, value in bingo.items():
+        strBalls = value.split(',')
+        balls = list(map(lambda r: int(r), strBalls))
+        ball = {'term': i, 'balls': balls}
+        calcuBingo.append(ball)
+        i = i + 1
+    # calcuBingo = list(map(mapBingo,bingo))
+
+    # endregion
+
+    bingoStatistics = bingoStatistics.BingoStatistics(calcuBingo)
+    numbers = list(range(1, 80))  # 生成 1 到 80 的数字列表
+    # 在目前數之中生成4數字為一組不重複組合
+    combinations_array = list(combinations(numbers, 3))
+    arrInput = list(map(lambda r: list(r), combinations_array))
+    arrResult = []
+    for item in arrInput:
+        result = bingoStatistics.calcu(item)
+        arrResult.append(result)
+    arrEffect = list(filter(lambda r: r['support'] != 0, arrResult))
+    arrApprove = list(
+        filter(lambda r: r['support'] > 0.05 and r['maxValue'] < 20, arrEffect))
+
+    for item in arrEffect:
+        print(item)
