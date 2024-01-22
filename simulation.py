@@ -5,6 +5,10 @@ import db
 from bson import ObjectId
 from datetime import datetime
 
+import sys
+print(sys.executable)
+print(sys.executable)
+
 
 class ValidMsg:
     def __init__(self, item, describe, isOK, errorMsg):

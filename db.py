@@ -130,28 +130,34 @@ class MongoDbContext(IDbContext):
 # 模組測試
 if __name__ == '__main__':
 
-    # 準備日誌
-    LogFile = "convert.log"
-    logging.basicConfig(
-        filename=LogFile,
-        encoding='utf-8',
-        level=logging.DEBUG,
-        format='%(asctime)s [%(levelname)s]: %(message)s',
-        datefmt='%Y/%m/%d %I:%M:%S',
-    )
-    with open(LogFile, 'w'):  # 清除日誌內容
-        pass
+    #region log sample
+    # # 準備日誌
+    # LogFile = "convert.log"
+    # logging.basicConfig(
+    #     filename=LogFile,
+    #     encoding='utf-8',
+    #     level=logging.DEBUG,
+    #     format='%(asctime)s [%(levelname)s]: %(message)s',
+    #     datefmt='%Y/%m/%d %I:%M:%S',
+    # )
+    # with open(LogFile, 'w'):  # 清除日誌內容
+    #     pass
+    #endregion
 
     # 宣告資料庫
-    db = MongoDbContext( "localhost", "testDb")
+    db = MongoDbContext( "localhost", "LotteryTicket")
     table = "test"
-    # queryKey = {'_id': ObjectId("64efc7c3cbe4c926355f0b66")}
+
 
     #region test寫入數據
-    insert = {"112050345": "01,02,06,09,13,14,16,19,29,34,35,36,39,48,52,56,62,72,73,79",
-    "112050346": "01,02,06,09,13,14,16,19,29,34,35,36,39,48,52,56,62,72,73,79"}
-    _id = db.Insert( "test", insert)
+    insert = {
+        "balls":[{"112050345": "01,02,06,09,13,14,16,19,29,34,35,36,39,48,52,56,62,72,73,79"},
+        {"112050346": "01,02,06,09,13,14,16,19,29,34,35,36,39,48,52,56,62,72,73,79"}]
+    }
+    _id = db.Insert( "Bingo", insert)
     #endregion
+
+    print("")
 
     #region test用剛剛寫入_id查詢數據
     # queryKey = {'price':36}

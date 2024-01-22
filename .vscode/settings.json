@@ -2,5 +2,9 @@
     "[python]": {
         "editor.defaultFormatter": "ms-python.autopep8"
     },
-    "python.formatting.provider": "none"
+    "python.formatting.provider": "none",
+    "pythonAutoImport.pythonInterpreterPath": "C:/Users/bayon/AppData/Local/Programs/Python/Python39",
+    "python.analysis.autoImportCompletions": true,
+    "python.autoComplete.extraPaths": [],
+    "python.analysis.extraPaths": []
 }

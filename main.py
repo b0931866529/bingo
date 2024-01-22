@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 from selenium import webdriver
-from selenium.webdriver.common.by import By
+
 import time
 import json
 import db
@@ -8,65 +8,7 @@ import bingoStatistics
 from itertools import combinations
 from bson import ObjectId
 from datetime import datetime
-
-# driver = webdriver.Chrome("./chromedriver")
-driver = webdriver.Chrome("C:/Programs/works/Test/chromedriver.exe")
-
-
-def print_dict(par_dict):
-    print(json.dumps(par_dict, indent=4))
-
-
-# 存放抓取號碼
-bingo_no = {}
-
-
-def bingo():
-    global bingo_no
-
-    # 開啟頁面
-    driver.get("https://www.taiwanlottery.com.tw/lotto/bingobingo/drawing.aspx")
-
-    # 取得頁面 title
-    title = driver.title
-    print("title:", title)
-    driver.implicitly_wait(30)
-    time.sleep(3)
-
-    # 按鈕【顯示當日所有期數】
-    submit_button = driver.find_element(by=By.ID, value="Button1")
-    submit_button.click()
-    # time.sleep( 3)
-
-    len_title = len("112001219")
-    len_no = len("01 03 07 10 11 17 18 20 23 31 35 42 45 50 52 55 57 70 76 79")
-
-    t_title = ""
-    for e in driver.find_elements(by=By.CLASS_NAME, value="tdA_3"):
-        t = e.text
-        if len(t) == len_title:
-            t_title = t
-        if len(t) == len_no:
-            if t_title != "":
-                bingo_no[t_title] = t.replace(" ", ",")
-
-    for e in driver.find_elements(by=By.CLASS_NAME, value="tdA_4"):
-        t = e.text
-        if len(t) == len_title:
-            t_title = t
-        if len(t) == len_no:
-            if t_title != "":
-                bingo_no[t_title] = t.replace(" ", ",")
-
-    bingo_no = dict(sorted(bingo_no.items()))
-
-    time.sleep(3)
-    driver.quit()
-
-
-def mapBingo(dict: {}):
-
-    return ''
+from selenium.webdriver.common.by import By
 
 
 # 整合計算來源演算法進行回朔test
@@ -91,7 +33,7 @@ if __name__ == '__main__':
     result = dbContext.Find(table, queryKey)
     bingo = result[0]
     # endregion
-
+    print('')
     # region 將bingo => term,ball 型別
 
     # example:calcuBingo = [
@@ -114,8 +56,11 @@ if __name__ == '__main__':
     # calcuBingo = list(map(mapBingo,bingo))
 
     # endregion
+    mapBingoLen = len(calcuBingo)
+    strategyBingos = list(filter(lambda r: int(r['term']) < 100, calcuBingo))
+    actualBingos = list(filter(lambda r: int(r['term']) >= 100, calcuBingo))
 
-    bingoStatistics = bingoStatistics.BingoStatistics(calcuBingo)
+    bingoStatistics = bingoStatistics.BingoStatistics(strategyBingos)
     numbers = list(range(1, 80))  # 生成 1 到 80 的数字列表
     # 在目前數之中生成4數字為一組不重複組合
     combinations_array = list(combinations(numbers, 3))
