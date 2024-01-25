@@ -192,4 +192,3 @@ if __name__ == '__main__':
         arr = obj['bigShowOrder'].split(',')
         twoDatas.append(arr)
     # endregion
-print("")
