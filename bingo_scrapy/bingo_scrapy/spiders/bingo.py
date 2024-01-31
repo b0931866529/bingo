@@ -58,5 +58,6 @@ class BingoSpider(scrapy.Spider):
             item['drawTerm'] = result['drawTerm']
             item['dDate'] = result['dDate']
             item['bigShowOrder'] = result['bigShowOrder']
+            # pdb.set_trace()
             yield item
         # pass

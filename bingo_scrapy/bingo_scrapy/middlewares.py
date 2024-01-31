@@ -23,12 +23,6 @@ class TestScrapySpiderMiddleware:
         # my_setting = crawler.settings.get('MY_SETTING')
         # pdb.set_trace()  # Set a breakpoint here
 
-        # 刪除檔案
-        currentDir = os.getcwd()
-        fileName = "bingo.csv"
-        file = os.path.join(currentDir, fileName)
-        if os.path.exists(file):
-            os.remove(file)
         crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
         return s
 

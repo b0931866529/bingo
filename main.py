@@ -3,7 +3,7 @@ from selenium import webdriver
 
 import time
 import json
-import db
+import bingo_scrapy.bingo_scrapy.db as db
 import bingoStatistics
 from itertools import combinations
 from bson import ObjectId

@@ -3,7 +3,7 @@ from datetime import datetime
 import pandas as pd
 from mlxtend.preprocessing import TransactionEncoder
 from mlxtend.frequent_patterns import apriori, association_rules
-import db as db
+import bingo_scrapy.bingo_scrapy.db as db
 
 
 if __name__ == '__main__':
@@ -19,8 +19,7 @@ if __name__ == '__main__':
     # result還算是有db型態list,但若遍歷直接就是字典元素
     twoDatas = []
     for obj in results:
-        arr = obj['bigShowOrder'].split(',')
-        twoDatas.append(arr)
+        twoDatas.append(obj['bigShowOrder'])
     # endregion
 
     dataset = twoDatas[50:100]

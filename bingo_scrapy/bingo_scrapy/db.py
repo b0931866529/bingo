@@ -11,8 +11,6 @@ from pymongo import InsertOne, DeleteOne, ReplaceOne
 from datetime import datetime
 
 
-
-
 class IDbContext(ABC):
 
     @property
@@ -25,6 +23,10 @@ class IDbContext(ABC):
 
     def __init__(self):
         self.__err = ''
+
+    @abstractmethod
+    def getCollection(self, DBCollection):
+        pass
 
     @abstractmethod
     def Insert(self, DBCollection, DBData):
@@ -61,7 +63,11 @@ class MongoDbContext(IDbContext):
         print("已經定義 IDbContext.AP( DBIP, DBID, DBPW, DBName)")
         return cls(DBIP, DBName)
 
+    def getCollection(self, DBCollection):
+        return self.__mongoDB[DBCollection]
+
     # 統一用批量插入
+
     def Insert(self, DBCollection, DBData: []):
         collection = self.__mongoDB[DBCollection]
         insert_result = collection.insert_many(DBData)
@@ -153,9 +159,8 @@ if __name__ == '__main__':
     #     pass
     # endregion
 
-    #將資料轉成日期格式
-    #設定日期>型態
-
+    # 將資料轉成日期格式
+    # 設定日期>型態
 
     # 宣告資料庫
     db = MongoDbContext("localhost", "LotteryTicket")
@@ -173,11 +178,13 @@ if __name__ == '__main__':
         data = []
         for obj in reader:
             newObj = {}
-            for key,value in obj.items():
+            for key, value in obj.items():
                 if key == 'dDate':
                     date_string = obj[key].split('T')[0]
                     date = datetime.strptime(date_string, "%Y-%m-%d")
                     newObj[key] = date
+                elif key == 'bigShowOrder':
+                    newObj[key] = value.split(',')
                 else:
                     newObj[key] = value
             data.append(newObj)
@@ -189,6 +196,6 @@ if __name__ == '__main__':
     # result還算是有db型態list,但若遍歷直接就是字典元素
     twoDatas = []
     for obj in results:
-        arr = obj['bigShowOrder'].split(',')
-        twoDatas.append(arr)
+        twoDatas.append(obj['bigShowOrder'])
+    print(twoDatas)
     # endregion

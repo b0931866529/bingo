@@ -14,9 +14,9 @@ NEWSPIDER_MODULE = 'bingo_scrapy.spiders'
 
 OPEN_DATE = '2024-01-23'
 LOG_FILE = 'scrapy.log'
-SPIDER_MIDDLEWARES = {
-    'bingo_scrapy.middlewares.TestScrapySpiderMiddleware': 100,
-}
+# SPIDER_MIDDLEWARES = {
+#     'bingo_scrapy.middlewares.TestScrapySpiderMiddleware': 100,
+# }
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent

@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from enum import Enum
-import db
+import bingo_scrapy.bingo_scrapy.db as db
 from bson import ObjectId
 from datetime import datetime
 
