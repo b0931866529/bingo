@@ -12,7 +12,8 @@ BOT_NAME = 'bingo_scrapy'
 SPIDER_MODULES = ['bingo_scrapy.spiders']
 NEWSPIDER_MODULE = 'bingo_scrapy.spiders'
 
-OPEN_DATE = '2024-01-23'
+OPEN_DATE = '2024-02-05'
+END_DAY = '07'
 LOG_FILE = 'scrapy.log'
 # SPIDER_MIDDLEWARES = {
 #     'bingo_scrapy.middlewares.TestScrapySpiderMiddleware': 100,

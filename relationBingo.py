@@ -13,8 +13,8 @@ if __name__ == '__main__':
     # 宣告資料庫
     db = db.MongoDbContext("localhost", "LotteryTicket")
     table = "Bingo"
-    # queryKey = {'dDate': {'$gte': datetime(2024, 1, 1)}}
-    queryKey = {'dDate': datetime(2024, 1, 24)}
+    queryKey = {'dDate': {'$gte': datetime(2024, 1, 1)}}
+    # queryKey = {'dDate': datetime(2024, 2, 6)}
     results = db.Find(table, queryKey)
     # result還算是有db型態list,但若遍歷直接就是字典元素
     twoDatas = []

@@ -3,6 +3,7 @@ import scrapy
 import pdb
 import json
 from ..settings import OPEN_DATE
+from ..settings import END_DAY
 
 
 class BingoSpider(scrapy.Spider):
@@ -14,12 +15,13 @@ class BingoSpider(scrapy.Spider):
     def __init__(self, name=None, **kwargs):
         super().__init__(name, **kwargs)
         arrDate = OPEN_DATE.split('-')
+        endDay = int(END_DAY)
         day = int(arrDate[2])
-        for i in range(day, 25):
+        for i in range(day, endDay):
             date = f'{arrDate[0]}-{arrDate[1]}-{str(i).zfill(2)}'
+            # pdb.set_trace()  # Set a breakpoint here
             url = f'https://api.taiwanlottery.com/TLCAPIWeB/Lottery/BingoResult?openDate={date}&pageNum=1&pageSize=10'
             self.start_urls.append(url)
-        # pdb.set_trace()  # Set a breakpoint here
 
     def parse(self, response):
         data = json.loads(response.text)
