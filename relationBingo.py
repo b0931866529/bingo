@@ -13,8 +13,8 @@ if __name__ == '__main__':
     # 宣告資料庫
     db = db.MongoDbContext("localhost", "LotteryTicket")
     table = "Bingo"
-    queryKey = {'dDate': {'$gte': datetime(2024, 1, 1)}}
-    # queryKey = {'dDate': datetime(2024, 2, 6)}
+    # queryKey = {'dDate': {'$gte': datetime(2024, 1, 1)}}
+    queryKey = {'dDate': datetime(2024, 2, 6)}
     results = db.Find(table, queryKey)
     # result還算是有db型態list,但若遍歷直接就是字典元素
     twoDatas = []
@@ -22,7 +22,8 @@ if __name__ == '__main__':
         twoDatas.append(obj['bigShowOrder'])
     # endregion
 
-    dataset = twoDatas[50:100]
+    # 36為1個單位去組合
+    dataset = twoDatas[120:161]
     # 假設我們有一個購物籃數據集
     # dataset = [['Milk', 'Onion', 'Nutmeg', 'Kidney Beans', 'Eggs', 'Yogurt'],
     #            ['Dill', 'Onion', 'Nutmeg', 'Kidney Beans', 'Eggs', 'Yogurt'],
