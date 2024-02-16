@@ -8,7 +8,8 @@ import pymongo
 import sys
 import logging
 from pymongo import InsertOne, DeleteOne, ReplaceOne
-from datetime import datetime
+from datetime import date, datetime
+import pymssql
 
 
 class IDbContext(ABC):
@@ -106,6 +107,53 @@ class MongoDbContext(IDbContext):
         except Exception as e:              # 例外
             self.setErr(e)
 
+
+class SQL:
+    def __init__(self, db_setting):
+        self.conn = pymssql.connect(
+            server=db_setting['server'], user=db_setting['user'], password=db_setting['password'], database=db_setting['database'])
+        # self.conn = pymssql.connect(
+        #     host=db_setting['host'],
+        #     database=db_setting['database'],
+        #     as_dict=True
+        # )
+        self.cur = self.conn.cursor(as_dict=True)
+
+    def insert(self, table, data):
+        tableKey = '('
+        tableValue = '('
+        for key, value in data.items():
+            tableKey += key+','
+
+            if value == "CURRENT_TIMESTAMP":
+                tableValue += value+","
+            elif type(value) == int:
+                tableValue += str(value)+","
+            elif type(value) == datetime or type(value) == date:
+                tableValue += "'"+str(value)+"',"
+            else:
+                tableValue += "'"+value+"',"
+
+            # if type(value) == int:
+            #     tableValue += str(value)+","
+            # else:
+            #     if value == "CURRENT_TIMESTAMP":
+            #         tableValue += value+","
+            #     else:
+            #         tableValue += "'"+value+"',"
+
+        tableKey += ')'
+        tableValue += ')'
+        tableKey = tableKey.replace(",)", ")")
+        tableValue = tableValue.replace(",)", ")")
+        sql = "insert into "+table+tableKey+" VALUES"+tableValue
+        self.cur.execute(sql)
+        self.conn.commit()
+
+    def close(self):
+        self.cur.close()
+        self.conn.close()
+
     # region 暫時不用先remark
 
     # def Insert_BulkWrite(self, DBCollection, BulkRequests):
@@ -162,40 +210,61 @@ if __name__ == '__main__':
     # 將資料轉成日期格式
     # 設定日期>型態
 
-    # 宣告資料庫
-    db = MongoDbContext("localhost", "LotteryTicket")
-    table = "Bingo"
+    # region mongodb
 
-    print("")
-    queryKey = {'dDate': {'$gte': datetime(2024, 1, 1)}}
-    db.Delete(table, queryKey)
+    # # 宣告資料庫
+    # db = MongoDbContext("localhost", "LotteryTicket")
+    # table = "Bingo"
 
-    # region read csv insert db
-    currDir = os.path.dirname(os.path.abspath(__file__))
-    file = os.path.join(currDir, 'bingo_scrapy', 'bingo_scrapy', 'bingo.csv')
-    with open(file, 'r') as f:
-        reader = csv.DictReader(f)
-        data = []
-        for obj in reader:
-            newObj = {}
-            for key, value in obj.items():
-                if key == 'dDate':
-                    date_string = obj[key].split('T')[0]
-                    date = datetime.strptime(date_string, "%Y-%m-%d")
-                    newObj[key] = date
-                elif key == 'bigShowOrder':
-                    newObj[key] = value.split(',')
-                else:
-                    newObj[key] = value
-            data.append(newObj)
-    db.Insert(table, data)
+    # print("")
+    # queryKey = {'dDate': {'$gte': datetime(2024, 1, 1)}}
+    # db.Delete(table, queryKey)
+
+    # # region read csv insert db
+    # currDir = os.path.dirname(os.path.abspath(__file__))
+    # file = os.path.join(currDir, 'bingo_scrapy', 'bingo_scrapy', 'bingo.csv')
+    # with open(file, 'r') as f:
+    #     reader = csv.DictReader(f)
+    #     data = []
+    #     for obj in reader:
+    #         newObj = {}
+    #         for key, value in obj.items():
+    #             if key == 'dDate':
+    #                 date_string = obj[key].split('T')[0]
+    #                 date = datetime.strptime(date_string, "%Y-%m-%d")
+    #                 newObj[key] = date
+    #             elif key == 'bigShowOrder':
+    #                 newObj[key] = value.split(',')
+    #             else:
+    #                 newObj[key] = value
+    #         data.append(newObj)
+    # db.Insert(table, data)
+    # # endregion
+
+    # # region test用剛剛寫入_id查詢數據
+    # results = db.Find(table, queryKey)
+    # # result還算是有db型態list,但若遍歷直接就是字典元素
+    # twoDatas = []
+    # for obj in results:
+    #     twoDatas.append(obj['bigShowOrder'])
+    # print(twoDatas)
+    # # endregion
     # endregion
 
-    # region test用剛剛寫入_id查詢數據
-    results = db.Find(table, queryKey)
-    # result還算是有db型態list,但若遍歷直接就是字典元素
-    twoDatas = []
-    for obj in results:
-        twoDatas.append(obj['bigShowOrder'])
-    print(twoDatas)
+    # region MS-SQL
+
+    sql = SQL({'server': 'wpdb2.hihosting.hinet.net', 'user': 'p89880749_p89880749',
+              'password': 'Jonny1070607!@#$%', 'database': 'p89880749_test'})
+    value = {}
+
+    value['drawTerm'] = 113009419
+    value['dDate'] = date(2024, 2, 16)
+    value['bigShowOrder'] = "04,08,18,19,23,25,29,31,33,36,38,42,43,46,49,57,60,76,78,80"
+    value['createDate'] = 'CURRENT_TIMESTAMP'
+    # value['createDate'] = datetime.now()
+
+    sql.insert('Bingo', value)
+
     # endregion
+
+    pass
