@@ -21,6 +21,11 @@ class TestScrapyPipeline:
         self.table = "Bingo"
 
     def open_spider(self, spider):
+        # 從DB中判別是否更新到最新天數
+        # 若超過時間太長用一週來更新
+        # 沒超過一週用落差時間來更新
+        # 更新當日資料
+
         queryKey = {'dDate': {'$gte': datetime(2024, 1, 1)}}
         self.db.Delete(self.table, queryKey)
         # self.file = open('setting.json', 'w')
@@ -34,6 +39,12 @@ class TestScrapyPipeline:
         pass
 
     def close_spider(self, spider):
+
+        # 從DB中判別是否更新到最新天數
+        # 若超過時間太長用一週來更新
+        # 沒超過一週用落差時間來更新
+        # 更新當日資料
+
         currDir = os.path.dirname(os.path.abspath(__file__))
         file = os.path.join(currDir, 'bingo.csv')
         # pdb.set_trace()  # Set a breakpoint here

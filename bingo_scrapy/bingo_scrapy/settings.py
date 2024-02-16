@@ -15,6 +15,10 @@ NEWSPIDER_MODULE = 'bingo_scrapy.spiders'
 OPEN_DATE = '2024-02-11'
 END_DAY = '13'
 LOG_FILE = 'scrapy.log'
+LOG_LEVEL = 'INFO'
+
+# Flag判別是否更新到最新天數
+
 # SPIDER_MIDDLEWARES = {
 #     'bingo_scrapy.middlewares.TestScrapySpiderMiddleware': 100,
 # }

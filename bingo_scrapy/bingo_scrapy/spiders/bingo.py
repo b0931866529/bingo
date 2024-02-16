@@ -4,6 +4,7 @@ import pdb
 import json
 from ..settings import OPEN_DATE
 from ..settings import END_DAY
+import logging
 
 
 class BingoSpider(scrapy.Spider):
@@ -13,6 +14,7 @@ class BingoSpider(scrapy.Spider):
     start_urls = []
 
     def __init__(self, name=None, **kwargs):
+        # logging.info('test info log')
         super().__init__(name, **kwargs)
         arrDate = OPEN_DATE.split('-')
         endDay = int(END_DAY)

@@ -253,6 +253,8 @@ if __name__ == '__main__':
 
     # region MS-SQL
 
+    # 研究怎用逗號分行
+
     sql = SQL({'server': 'wpdb2.hihosting.hinet.net', 'user': 'p89880749_p89880749',
               'password': 'Jonny1070607!@#$%', 'database': 'p89880749_test'})
     value = {}
@@ -264,6 +266,8 @@ if __name__ == '__main__':
     # value['createDate'] = datetime.now()
 
     sql.insert('Bingo', value)
+
+    # 增加刪除和tran commit
 
     # endregion
 
