@@ -1,6 +1,0 @@
-zip遍歷多個Enumerable
-Series to list
-re.findall return array
-set(array union)
-
-find index

@@ -10,29 +10,34 @@ from itemadapter import ItemAdapter
 import pdb
 import json
 import os
-from bingo_scrapy.db import MongoDbContext
-from datetime import datetime
+from bingo_scrapy.db import SQL
+from datetime import date, datetime, timedelta
+import logging
 
 
 class TestScrapyPipeline:
 
     def __init__(self):
-        self.db = MongoDbContext("localhost", "LotteryTicket")
-        self.table = "Bingo"
+        db = SQL({'server': 'wpdb2.hihosting.hinet.net', 'user': 'p89880749_p89880749',
+                  'password': 'Jonny1070607!@#$%', 'database': 'p89880749_test'})
+        pass
 
     def open_spider(self, spider):
-        # 從DB中判別是否更新到最新天數
-        # 若超過時間太長用一週來更新
-        # 沒超過一週用落差時間來更新
-        # 更新當日資料
+        db = SQL({'server': 'wpdb2.hihosting.hinet.net', 'user': 'p89880749_p89880749',
+                  'password': 'Jonny1070607!@#$%', 'database': 'p89880749_test'})
+        # 若Flag為True則刪除DB資料
+        delDate = date.today() - timedelta(days=spider.beforeDay)
+        errDelete = db.delete(
+            f"delete from Bingo where dDate >= '{delDate}'")
+        if errDelete != '':
+            logging.error(errDelete)
+        # pdb.set_trace()  # Set a breakpoint here
 
-        queryKey = {'dDate': {'$gte': datetime(2024, 1, 1)}}
-        self.db.Delete(self.table, queryKey)
-        # self.file = open('setting.json', 'w')
         # 刪除檔案
         currentDir = os.getcwd()
         fileName = "bingo.csv"
         file = os.path.join(currentDir, fileName)
+        logging.info(file)
         if os.path.exists(file):
             os.remove(file)
         # pdb.set_trace()  # Set a breakpoint here
@@ -45,8 +50,10 @@ class TestScrapyPipeline:
         # 沒超過一週用落差時間來更新
         # 更新當日資料
 
-        currDir = os.path.dirname(os.path.abspath(__file__))
-        file = os.path.join(currDir, 'bingo.csv')
+        # currDir = os.path.dirname(os.path.abspath(__file__))
+        currentDir = os.getcwd()
+        file = os.path.join(currentDir, 'bingo.csv')
+        logging.info(file)
         # pdb.set_trace()  # Set a breakpoint here
         with open(file, 'r') as f:
             reader = csv.DictReader(f)
@@ -58,15 +65,21 @@ class TestScrapyPipeline:
                         date_string = obj[key].split('T')[0]
                         date = datetime.strptime(date_string, "%Y-%m-%d")
                         newObj[key] = date
-                    elif key == 'bigShowOrder':
-                        arr = []
-                        for e in value.split(','):
-                            arr.append(int(e))
-                        newObj[key] = arr
+                    elif key == 'drawTerm':
+                        newObj[key] = int(value)
                     else:
                         newObj[key] = value
+                newObj['createDate'] = 'CURRENT_TIMESTAMP'
+                # pdb.set_trace()  # Set a breakpoint here
                 data.append(newObj)
-        self.db.Insert(self.table, data)
+        # pdb.set_trace()  # Set a breakpoint here
+        db = SQL({'server': 'wpdb2.hihosting.hinet.net', 'user': 'p89880749_p89880749',
+                  'password': 'Jonny1070607!@#$%', 'database': 'p89880749_test'})
+        result = db.insert('Bingo', data)
+        if result != '':
+            logging.error(result)
+        else:
+            logging.info('Insert Success')
         # pdb.set_trace()  # Set a breakpoint here
         pass
 

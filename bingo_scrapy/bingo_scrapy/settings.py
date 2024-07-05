@@ -16,8 +16,8 @@ OPEN_DATE = '2024-02-11'
 END_DAY = '13'
 LOG_FILE = 'scrapy.log'
 LOG_LEVEL = 'INFO'
-
-# Flag判別是否更新到最新天數
+FEED_URI = 'bingo.csv'
+FEED_FORMAT = 'csv'
 
 # SPIDER_MIDDLEWARES = {
 #     'bingo_scrapy.middlewares.TestScrapySpiderMiddleware': 100,
@@ -28,7 +28,7 @@ LOG_LEVEL = 'INFO'
 # USER_AGENT = 'bingo_scrapy (+http://www.yourdomain.com)'
 
 # Obey robots.txt rules
-ROBOTSTXT_OBEY = True
+ROBOTSTXT_OBEY = False
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
 # CONCURRENT_REQUESTS = 32

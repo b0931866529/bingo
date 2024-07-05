@@ -1,10 +1,12 @@
-from ..items import TestScrapyItem
+from bingo_scrapy.items import TestScrapyItem
+from bingo_scrapy.settings import OPEN_DATE
+from bingo_scrapy.settings import END_DAY
+from bingo_scrapy.db import SQL
 import scrapy
 import pdb
 import json
-from ..settings import OPEN_DATE
-from ..settings import END_DAY
 import logging
+from datetime import date, datetime, timedelta
 
 
 class BingoSpider(scrapy.Spider):
@@ -12,18 +14,41 @@ class BingoSpider(scrapy.Spider):
     name = 'bingo'
     allowed_domains = ['www.taiwanlottery.com', 'api.taiwanlottery.com']
     start_urls = []
+    # Flag判別是否更新到最新天數
+    beforeDay = 0
+    db = SQL({'server': 'wpdb2.hihosting.hinet.net', 'user': 'p89880749_p89880749',
+              'password': 'Jonny1070607!@#$%', 'database': 'p89880749_test'})
 
     def __init__(self, name=None, **kwargs):
         # logging.info('test info log')
         super().__init__(name, **kwargs)
-        arrDate = OPEN_DATE.split('-')
-        endDay = int(END_DAY)
-        day = int(arrDate[2])
-        for i in range(day, endDay):
-            date = f'{arrDate[0]}-{arrDate[1]}-{str(i).zfill(2)}'
+
+        # 沒超過一週用落差時間來更新
+        # 更新當日資料
+        # 從DB中判別是否更新到最新天數
+        rows = self.db.select(
+            'Select MAX(dDate) As dDate From Bingo Group By dDate ORDER BY dDate DESC')
+        # 若超過時間太長用前三天來更新
+        overDate = date.today() - timedelta(days=3)
+        dbDate = overDate if len(rows) == 0 else rows[0]['dDate']
+        offset = (date.today() - dbDate).days
+        if dbDate == overDate or offset > 3:
+            self.beforeDay = 3
+        else:
+            self.beforeDay = offset
+
+        if self.beforeDay == 0:
+            self.beforeDay += 1
+
+        pdb.set_trace()  # Set a breakpoint here
+        for i in range(0, self.beforeDay + 1):
+            crawlDate = date.today() if i == 0 else date.today() - timedelta(days=i)
+            pdb.set_trace()  # Set a breakpoint here
+            url = f'https://api.taiwanlottery.com/TLCAPIWeB/Lottery/BingoResult?openDate={crawlDate}&pageNum=1&pageSize=10'
+            logging.info(url)
             # pdb.set_trace()  # Set a breakpoint here
-            url = f'https://api.taiwanlottery.com/TLCAPIWeB/Lottery/BingoResult?openDate={date}&pageNum=1&pageSize=10'
             self.start_urls.append(url)
+        # pdb.set_trace()  # Set a breakpoint here
 
     def parse(self, response):
         data = json.loads(response.text)

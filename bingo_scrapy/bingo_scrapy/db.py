@@ -119,7 +119,31 @@ class SQL:
         # )
         self.cur = self.conn.cursor(as_dict=True)
 
-    def insert(self, table, data):
+    def select(self, sql):
+        self.cur.execute(sql)
+        return self.cur.fetchall()
+
+    def delete(self, sql):
+        try:
+            self.cur.execute(sql)
+            self.conn.commit()
+            return ''
+        except Exception as e:
+            return e
+
+    def insert(self, table, datas):
+        sql = ''
+        for data in datas:
+            sql += self.getInsertSQL(table, data)
+
+        try:
+            self.cur.execute(sql)
+            self.conn.commit()
+            return ''
+        except Exception as e:
+            return e
+
+    def getInsertSQL(self, table, data):
         tableKey = '('
         tableValue = '('
         for key, value in data.items():
@@ -134,21 +158,12 @@ class SQL:
             else:
                 tableValue += "'"+value+"',"
 
-            # if type(value) == int:
-            #     tableValue += str(value)+","
-            # else:
-            #     if value == "CURRENT_TIMESTAMP":
-            #         tableValue += value+","
-            #     else:
-            #         tableValue += "'"+value+"',"
-
         tableKey += ')'
         tableValue += ')'
         tableKey = tableKey.replace(",)", ")")
         tableValue = tableValue.replace(",)", ")")
         sql = "insert into "+table+tableKey+" VALUES"+tableValue
-        self.cur.execute(sql)
-        self.conn.commit()
+        return sql
 
     def close(self):
         self.cur.close()
@@ -259,14 +274,17 @@ if __name__ == '__main__':
               'password': 'Jonny1070607!@#$%', 'database': 'p89880749_test'})
     value = {}
 
-    value['drawTerm'] = 113009419
-    value['dDate'] = date(2024, 2, 16)
+    value['drawTerm'] = 113009421
+    value['dDate'] = date(2024, 2, 25)
     value['bigShowOrder'] = "04,08,18,19,23,25,29,31,33,36,38,42,43,46,49,57,60,76,78,80"
     value['createDate'] = 'CURRENT_TIMESTAMP'
     # value['createDate'] = datetime.now()
-
-    sql.insert('Bingo', value)
-
+    data = [value]
+    err = sql.insert('Bingo', data)
+    print(err)
+    rows = sql.select('select * from Bingo where dDate != \'2024-02-16\'')
+    for row in rows:
+        print(row['bigShowOrder'])
     # 增加刪除和tran commit
 
     # endregion
