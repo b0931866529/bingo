@@ -17,9 +17,12 @@ from enum import Enum
 
 
 class StrategyPrize(Enum):
-    Relation_Five_Compose = 1
-    Relation_Four_Compose = 2
-    Take_Cold_TwenTy = 3
+    Relation_Five_Compose_5 = 1
+    Relation_Five_Compose_10 = 2
+    Relation_Five_Compose_12 = 3
+    Relation_Five_Compose_15 = 4
+    Relation_Five_Compose_20 = 5
+    Relation_Five_Compose_25 = 6
 
 
 class ConvertMark:
@@ -212,6 +215,71 @@ class DeferCalcu(ICalcu):
         self._isToCsv = isToCsv
         pass
 
+    def _getOutlier(self, dfDefer: DataFrame) -> int:
+        # region test 四分位距
+        arr = []
+        ballDeferColumns = dfDefer.columns[0:19]
+        for column in ballDeferColumns:
+            arr.extend(dfDefer[column].values)
+            pass
+        arr = sorted(arr, key=lambda e: e)
+        npArr = np.array(arr)
+        max = np.max(npArr)
+        mean = np.mean(npArr)
+        Q1 = np.quantile(npArr, 0.25)
+        Q3 = np.quantile(npArr, 0.75)
+        IQR = Q3 - Q1
+
+        np.mean(npArr)
+
+        # 設定離散值範圍
+        lower_bound = Q1 - 1.5 * IQR
+        upper_bound = Q3 + 1.5 * IQR
+        return upper_bound
+        # endregion
+
+    def _getMarkOutliers(self, row: pd.Series):
+        markOutliers = []
+        if row['小一'] > 10:
+            markOutliers.append('小一')
+        if row['小二'] > 10:
+            markOutliers.append('小二')
+        if row['小三'] > 10:
+            markOutliers.append('小三')
+        if row['小四'] > 10:
+            markOutliers.append('小四')
+        if row['小五'] > 10:
+            markOutliers.append('小五')
+        if row['小六'] > 10:
+            markOutliers.append('小六')
+        if row['小七'] > 10:
+            markOutliers.append('小七')
+        if row['小八'] > 10:
+            markOutliers.append('小八')
+        if row['小九'] > 10:
+            markOutliers.append('小九')
+
+        if row['大一'] > 10:
+            markOutliers.append('大一')
+        if row['大二'] > 10:
+            markOutliers.append('大二')
+        if row['大三'] > 10:
+            markOutliers.append('大三')
+        if row['大四'] > 10:
+            markOutliers.append('大四')
+        if row['大五'] > 10:
+            markOutliers.append('大五')
+        if row['大六'] > 10:
+            markOutliers.append('大六')
+        if row['大七'] > 10:
+            markOutliers.append('大七')
+        if row['大八'] > 10:
+            markOutliers.append('大八')
+        if row['大九'] > 10:
+            markOutliers.append('大九')
+        return markOutliers
+        pass
+
     def calcu(self, inputs: List[str]) -> DataFrame:
         """
         計算拖期
@@ -238,6 +306,12 @@ class DeferCalcu(ICalcu):
         deferColumns.append('var')
         deferColumns.append('num')
         dfDefer = pd.DataFrame(defer2Ds, columns=deferColumns)
+
+        # 計算符合離群值mark
+        outlier = self._getOutlier(dfDefer)
+        dfDefer['markOutliers'] = dfDefer.apply(
+            lambda row: self._getMarkOutliers(row), axis=1)
+
         if self._isToCsv:
             self._exportFile.exportCsv(
                 dfDefer, 'C:/Programs/bingo/bingo_scrapy/539_calcu', 'defer.csv')
@@ -300,6 +374,9 @@ class RelationTerm:
         rules = association_rules(
             frequent_itemsets, metric="confidence", min_threshold=self._min_threshold)
         dfRelation = rules
+        # 空的DataFrame
+        if dfRelation.empty:
+            return []
         dfRelation['result'] = dfRelation.apply(
             lambda row: self._mapToArrayFilterThree(row), axis=1)
 
@@ -350,11 +427,47 @@ class FiveThreeNineSign:
     def strategy(self, value):
         self._strategy = value
 
+    @property
+    def frtTake(self):
+        return self._frtTake
+
+    @frtTake.setter
+    def frtTake(self, value):
+        self._frtTake = value
+
+    @property
+    def min_support(self):
+        return self._min_support
+
+    @min_support.setter
+    def min_support(self, value):
+        self._min_support = value
+
+    @property
+    def min_threshold(self):
+        return self._min_threshold
+
+    @min_threshold.setter
+    def min_threshold(self, value):
+        self._min_threshold = value
+
+    @property
+    def hot_limit(self):
+        return self._hot_limit
+
+    @hot_limit.setter
+    def hot_limit(self, value):
+        self._hot_limit = value
+
     def __init__(self, exportFile: ExportFile, convert: ConvertMark, relationCalcu: RelationTerm, isToCsv=False) -> None:
         self._exportFile = exportFile
         self._convert = convert
         self._isToCsv = isToCsv
         self._relationCalcu = relationCalcu
+        self._frtTake = 12
+        self._min_support = 0.1
+        self._min_threshold = 0.7
+        self._hot_limit = 13
         pass
 
     def sign(self, dfDefer: DataFrame, dfTimes: DataFrame) -> DataFrame:
@@ -383,7 +496,7 @@ class FiveThreeNineSign:
 
         # region 衍生欄位冷熱門球號、簽注分類、簽注球號計算方式
         dfSign['state'] = dfSign['defer']['var'].apply(
-            lambda x: 'hot' if x >= 10 else 'cold')
+            lambda x: 'hot' if x >= self._hot_limit else 'cold')
         dfSign['balls'] = dfSign.apply(
             lambda row: self._convertRowAsc(row), axis=1)
         dfSign['signMark'] = dfSign.apply(
@@ -421,19 +534,31 @@ class FiveThreeNineSign:
                 if len(set(relation2D + signBall2D)) == 2 or len(set(relation2D + signBall2D)) == 3:
                     sign2Ds.append(signBall2D)
                     break
+        # 球號太少組合無法精準判別
+        if len(sign2Ds) <= 20 or len(sign2Ds) >= 50:
+            return []
         return sign2Ds
         pass
 
     def _getRelation(self, row: pd.Series):
-        if int(row['index']) < 20:
+        if int(row['index']) < self._frtTake:
             return []
 
-        self._relationCalcu.min_support = 0.1  # 最小支持度
-        self._relationCalcu.min_threshold = 0.6  # 最小信賴度
-        self._relationCalcu.frt = int(row['index']) - 20  # 開始期數
+        self._relationCalcu.min_support = self._min_support  # 最小支持度
+        self._relationCalcu.min_threshold = self._min_threshold  # 最小信賴度
+        self._relationCalcu.frt = int(row['index']) - self._frtTake  # 開始期數
         self._relationCalcu._end = int(row['index'])  # 結束期數
         results = self._relationCalcu.calcu()
-        return results
+        # 離群值過濾
+        ballOutliers = [self._convert.markToBalls(
+            c) for c in row[('defer', 'markOutliers')]]
+        excludeOutliers = []
+        for ele in results:
+            if any(set(ele + c) == 2 or set(ele + c) == 3 for c in ballOutliers):
+                continue
+            excludeOutliers.append(ele)
+
+        return excludeOutliers
         pass
 
     def _getBalls(self, row: pd.Series):
@@ -442,66 +567,67 @@ class FiveThreeNineSign:
             return []
 
         ball2DResults = []
-        isProduct = True
-        # 判別是否笛卡爾乘積
-        if self._strategy == StrategyPrize.Relation_Five_Compose:
-            ball2Ds = []
-            for mark in marks:
-                ball2Ds.append(self._convert.markToBalls(mark))
-            ball2D1s = list(itertools.product(ball2Ds[0], ball2Ds[1]))
-            ball2D2s = list(itertools.product(ball2Ds[0], ball2Ds[2]))
-            ball2D3s = list(itertools.product(ball2Ds[0], ball2Ds[3]))
-            ball2D4s = list(itertools.product(ball2Ds[0], ball2Ds[4]))
-            ball2D5s = list(itertools.product(ball2Ds[1], ball2Ds[2]))
-            ball2D6s = list(itertools.product(ball2Ds[1], ball2Ds[3]))
-            ball2D7s = list(itertools.product(ball2Ds[1], ball2Ds[4]))
-            ball2D8s = list(itertools.product(ball2Ds[2], ball2Ds[3]))
-            ball2D9s = list(itertools.product(ball2Ds[2], ball2Ds[4]))
-            ball2D10s = list(itertools.product(ball2Ds[3], ball2Ds[3]))
-            ball2D11s = list(itertools.product(ball2Ds[3], ball2Ds[4]))
-            itertool2Ds = [ball2D1s, ball2D2s,
-                           ball2D3s, ball2D4s, ball2D5s, ball2D6s,
-                           ball2D7s, ball2D8s, ball2D9s, ball2D10s, ball2D11s,
-                           ]
-            for arr2D in itertool2Ds:
-                for tp in arr2D:
-                    ball2DResults.append(list(tp))
-        elif self._strategy == StrategyPrize.Relation_Four_Compose:
-            ball2Ds = []
-            for mark in marks:
-                ball2Ds.append(self._convert.markToBalls(mark))
-            ball2D1s = list(itertools.product(ball2Ds[0], ball2Ds[1]))
-            ball2D2s = list(itertools.product(ball2Ds[0], ball2Ds[2]))
-            ball2D3s = list(itertools.product(ball2Ds[0], ball2Ds[3]))
-            ball2D5s = list(itertools.product(ball2Ds[1], ball2Ds[2]))
-            ball2D6s = list(itertools.product(ball2Ds[1], ball2Ds[3]))
-            ball2D8s = list(itertools.product(ball2Ds[2], ball2Ds[3]))
-            itertool2Ds = [ball2D1s, ball2D2s,
-                           ball2D3s, ball2D5s, ball2D6s,
-                           ball2D8s,
-                           ]
-            for arr2D in itertool2Ds:
-                for tp in arr2D:
-                    ball2DResults.append(list(tp))
-        elif self._strategy == StrategyPrize.Take_Cold_TwenTy:
-            ball2DResults = [self._convert.markToBalls(mark) for mark in marks]
+        # isProduct = True
+        # # 判別是否笛卡爾乘積
+        # if self._strategy == StrategyPrize.Relation_Five_Compose:
+        ball2Ds = []
+        for mark in marks:
+            ball2Ds.append(self._convert.markToBalls(mark))
+        ball2D1s = list(itertools.product(ball2Ds[0], ball2Ds[1]))
+        ball2D2s = list(itertools.product(ball2Ds[0], ball2Ds[2]))
+        ball2D3s = list(itertools.product(ball2Ds[0], ball2Ds[3]))
+        ball2D4s = list(itertools.product(ball2Ds[0], ball2Ds[4]))
+        ball2D5s = list(itertools.product(ball2Ds[0], ball2Ds[5]))
+        ball2D6s = list(itertools.product(ball2Ds[0], ball2Ds[6]))
+
+        ball2D7s = list(itertools.product(ball2Ds[1], ball2Ds[2]))
+        ball2D8s = list(itertools.product(ball2Ds[1], ball2Ds[3]))
+        ball2D9s = list(itertools.product(ball2Ds[1], ball2Ds[4]))
+        ball2D10s = list(itertools.product(ball2Ds[1], ball2Ds[5]))
+        ball2D11s = list(itertools.product(ball2Ds[1], ball2Ds[6]))
+
+        ball2D12s = list(itertools.product(ball2Ds[2], ball2Ds[3]))
+        ball2D13s = list(itertools.product(ball2Ds[2], ball2Ds[4]))
+        ball2D14s = list(itertools.product(ball2Ds[2], ball2Ds[5]))
+        ball2D15s = list(itertools.product(ball2Ds[2], ball2Ds[6]))
+
+        ball2D16s = list(itertools.product(ball2Ds[3], ball2Ds[4]))
+        ball2D17s = list(itertools.product(ball2Ds[3], ball2Ds[5]))
+        ball2D18s = list(itertools.product(ball2Ds[3], ball2Ds[6]))
+
+        ball2D19s = list(itertools.product(ball2Ds[4], ball2Ds[5]))
+        ball2D20s = list(itertools.product(ball2Ds[4], ball2Ds[6]))
+
+        ball2D21s = list(itertools.product(ball2Ds[5], ball2Ds[6]))
+
+        itertool2Ds = [
+            ball2D1s, ball2D2s, ball2D3s, ball2D4s, ball2D5s,
+            ball2D6s, ball2D7s, ball2D8s, ball2D9s, ball2D10s,
+            ball2D11s, ball2D12s, ball2D13s, ball2D14s, ball2D15s,
+            ball2D16s, ball2D17s, ball2D18s, ball2D19s, ball2D20s,
+            ball2D21s,
+        ]
+        for arr2D in itertool2Ds:
+            for tp in arr2D:
+                ball2DResults.append(list(tp))
         return ball2DResults
         pass
 
     def _getSign(self, row: pd.Series):
-        if int(row['index']) < 20:
+        if int(row['index']) < self._frtTake:
             return []
         arr = row['balls'].tolist()[0]
         isProduct = True
-        take = 12
-        if self._strategy == StrategyPrize.Relation_Five_Compose:
-            take = 5
-        elif self._strategy == StrategyPrize.Relation_Four_Compose:
-            take = 4
-        # take = 5 if self._strategy == Strategy.Relation_Five_Compose else 12
+        take = 7
         if str(row['state'].tolist()[0]) == 'hot':
             arr.reverse()
-            return arr[0:take]
+            arrHot = []
+            # 離群值移除
+            for ele in arr:
+                if any(ele == c for c in row[('defer', 'markOutliers')]):
+                    continue
+                arrHot.append(ele)
+            return arrHot[0:take]
         elif str(row['state'].tolist()[0]) == 'cold':
             return arr[0:take]
         pass
@@ -562,6 +688,12 @@ class FiveThreeNinePrize:
             lambda row: self._match(row), axis=1)
         dfPrize['signQty'] = dfPrize.apply(
             lambda arr: self._calcuQty(arr), axis=1)
+
+        # 統計用:是否有簽注、是否都無命中
+        dfPrize['isSign'] = dfPrize['signQty'] != 0
+        dfPrize['isMatch'] = dfPrize.apply(
+            lambda row: row['signQty'] != 0 and row['matchQty'] != 0, axis=1)
+
         # column 只留下matchQty、signQty、stdBalls、index (中獎、簽注數量、索引)
         dfPrize.drop(columns=[
             ('times', '小一'),  ('times', '小二'), ('times', '小三'), ('times', '小四'),
@@ -824,32 +956,59 @@ if __name__ == '__main__':
     dfTimes = timesCalcu.calcu(inputs)
 
     relationTerm = RelationTerm(inputs=inputs)
-    stategy = [StrategyPrize.Relation_Five_Compose,
-               StrategyPrize.Relation_Four_Compose, StrategyPrize.Take_Cold_TwenTy]
+    # stategy = [StrategyPrize.Relation_Five_Compose_5, StrategyPrize.Relation_Five_Compose_10, StrategyPrize.Relation_Five_Compose_12,
+    #            StrategyPrize.Relation_Five_Compose_15, StrategyPrize.Relation_Five_Compose_20, StrategyPrize.Relation_Five_Compose_25]
+    stategy = [StrategyPrize.Relation_Five_Compose_12]
     for stat in stategy:
         fiveThreeNineSign = FiveThreeNineSign(
             exportFile, convertMark, relationTerm, True)
         fiveThreeNineSign.strategy = stat
+        # if stat == StrategyPrize.Relation_Five_Compose_5:
+        #     fiveThreeNineSign.frtTake = 5
+        # if stat == StrategyPrize.Relation_Five_Compose_10:
+        #     fiveThreeNineSign.frtTake = 10
+
+        if stat == StrategyPrize.Relation_Five_Compose_12:
+            fiveThreeNineSign.frtTake = 12
+            fiveThreeNineSign.min_support = 0.1
+            fiveThreeNineSign.min_threshold = 0.8
+            fiveThreeNineSign.hot_limit = 13
+        # if stat == StrategyPrize.Relation_Five_Compose_15:
+        #     fiveThreeNineSign.frtTake = 15
+        # if stat == StrategyPrize.Relation_Five_Compose_20:
+        #     fiveThreeNineSign.frtTake = 20
+        # if stat == StrategyPrize.Relation_Five_Compose_25:
+        #     fiveThreeNineSign.frtTake = 25
         dfSign = fiveThreeNineSign.sign(dfDefer, dfTimes)
 
         fiveThreeNinePrize = FiveThreeNinePrize(exportFile, convertMark, True)
         dfPrize = fiveThreeNinePrize.prize(inputs, dfSign)
 
         # region 計算收益
-        matchSum = dfPrize['matchQty'].sum()
-        signSum = dfPrize['signQty'].sum()
+        # signTerm = dfPrize['signQty'].count()
         signMax = dfPrize['signQty'].max()
-        profit = 1500 * matchSum
-        cost = 25 * signSum
+        signTerm = len(
+            list(filter(lambda e: e == True, dfPrize['isSign'].values)))
+        matchTerm = len(
+            list(filter(lambda e: e == True, dfPrize['isMatch'].values)))
+        termPercent = matchTerm / signTerm
+        termFormatedPercent = '{:.2%}'.format(termPercent)
+        matchSumQty = dfPrize['matchQty'].sum()
+        signSumQty = dfPrize['signQty'].sum()
+        matchPercent = matchSumQty / signSumQty
+        formatedPercent = '{:.2%}'.format(matchPercent)
+        profit = 1500 * matchSumQty
+        cost = 25 * signSumQty
         actualProfit = profit - cost
+        print(f'name:{stat.name}')
         print(f'actualProfit:{actualProfit}')
         print(f'profit:{profit}')
         print(f'cost:{cost}')
         dfProfit = pd.DataFrame(
-            {'actualProfit': [actualProfit], 'profit': [profit], 'cost': [cost]})
+            {'總損益': [actualProfit], '成本': [cost], '期數命中率': [termFormatedPercent], '注數命中率': [formatedPercent]
+             })
         # endregion
 
-        # dfSign.reset_index(level=None, inplace=True, drop=True)
         resultFile = 'C:/Programs/bingo/bingo_scrapy/539_calcu/excel/merged_{}.xlsx'.format(
             stat.name)
         if os.path.exists(resultFile):
