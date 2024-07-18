@@ -12,6 +12,14 @@ from abc import ABC, abstractmethod
 from mlxtend.frequent_patterns import apriori, association_rules
 from mlxtend.preprocessing import TransactionEncoder
 import itertools
+import db
+from enum import Enum
+
+
+class StrategyPrize(Enum):
+    Relation_Five_Compose = 1
+    Relation_Four_Compose = 2
+    Take_Cold_TwenTy = 3
 
 
 class ConvertMark:
@@ -273,14 +281,15 @@ class RelationTerm:
     def min_threshold(self, value):
         self._min_threshold = value
 
-    def __init__(self) -> None:
+    def __init__(self, inputs: List[str]) -> None:
         self._min_support = 0
         self._min_threshold = 0
+        self._inputs = inputs
         pass
 
-    def calcu(self, inputs: List[str]) -> List[List[str]]:
+    def calcu(self) -> List[List[str]]:
 
-        ball2Ds = inputs[self._frt:self._end]
+        ball2Ds = self._inputs[self._frt:self._end]
         te = TransactionEncoder()
         te_ary = te.fit(ball2Ds).transform(ball2Ds)
         df = pd.DataFrame(te_ary, columns=te.columns_)
@@ -332,6 +341,15 @@ class RelationTerm:
 
 
 class FiveThreeNineSign:
+
+    @property
+    def strategy(self):
+        return self._strategy
+
+    @strategy.setter
+    def strategy(self, value):
+        self._strategy = value
+
     def __init__(self, exportFile: ExportFile, convert: ConvertMark, relationCalcu: RelationTerm, isToCsv=False) -> None:
         self._exportFile = exportFile
         self._convert = convert
@@ -344,7 +362,7 @@ class FiveThreeNineSign:
         dfSign = pd.concat([dfDefer, dfTimes], axis=1, keys=['defer', 'times'])
 
         # region 刪除不需要計算column
-        dfSign.drop(columns=[('defer', '小一'), ('defer', '大一'), ('defer', '小二'), ('defer', '大二'),
+        dfSign.drop(columns=[('defer', '零'), ('defer', '小一'), ('defer', '大一'), ('defer', '小二'), ('defer', '大二'),
                              ('defer', '小三'), ('defer',
                                                '大三'), ('defer', '小四'), ('defer', '大四'),
                              ('defer', '小五'), ('defer',
@@ -410,12 +428,11 @@ class FiveThreeNineSign:
         if int(row['index']) < 20:
             return []
 
-        inputs = row['stdBalls'].tolist()[0]
         self._relationCalcu.min_support = 0.1  # 最小支持度
         self._relationCalcu.min_threshold = 0.6  # 最小信賴度
         self._relationCalcu.frt = int(row['index']) - 20  # 開始期數
         self._relationCalcu._end = int(row['index'])  # 結束期數
-        results = self._relationCalcu.calcu(inputs)
+        results = self._relationCalcu.calcu()
         return results
         pass
 
@@ -427,7 +444,7 @@ class FiveThreeNineSign:
         ball2DResults = []
         isProduct = True
         # 判別是否笛卡爾乘積
-        if isProduct == True:
+        if self._strategy == StrategyPrize.Relation_Five_Compose:
             ball2Ds = []
             for mark in marks:
                 ball2Ds.append(self._convert.markToBalls(mark))
@@ -449,7 +466,24 @@ class FiveThreeNineSign:
             for arr2D in itertool2Ds:
                 for tp in arr2D:
                     ball2DResults.append(list(tp))
-        else:
+        elif self._strategy == StrategyPrize.Relation_Four_Compose:
+            ball2Ds = []
+            for mark in marks:
+                ball2Ds.append(self._convert.markToBalls(mark))
+            ball2D1s = list(itertools.product(ball2Ds[0], ball2Ds[1]))
+            ball2D2s = list(itertools.product(ball2Ds[0], ball2Ds[2]))
+            ball2D3s = list(itertools.product(ball2Ds[0], ball2Ds[3]))
+            ball2D5s = list(itertools.product(ball2Ds[1], ball2Ds[2]))
+            ball2D6s = list(itertools.product(ball2Ds[1], ball2Ds[3]))
+            ball2D8s = list(itertools.product(ball2Ds[2], ball2Ds[3]))
+            itertool2Ds = [ball2D1s, ball2D2s,
+                           ball2D3s, ball2D5s, ball2D6s,
+                           ball2D8s,
+                           ]
+            for arr2D in itertool2Ds:
+                for tp in arr2D:
+                    ball2DResults.append(list(tp))
+        elif self._strategy == StrategyPrize.Take_Cold_TwenTy:
             ball2DResults = [self._convert.markToBalls(mark) for mark in marks]
         return ball2DResults
         pass
@@ -459,7 +493,12 @@ class FiveThreeNineSign:
             return []
         arr = row['balls'].tolist()[0]
         isProduct = True
-        take = 5 if isProduct else 12
+        take = 12
+        if self._strategy == StrategyPrize.Relation_Five_Compose:
+            take = 5
+        elif self._strategy == StrategyPrize.Relation_Four_Compose:
+            take = 4
+        # take = 5 if self._strategy == Strategy.Relation_Five_Compose else 12
         if str(row['state'].tolist()[0]) == 'hot':
             arr.reverse()
             return arr[0:take]
@@ -523,6 +562,17 @@ class FiveThreeNinePrize:
             lambda row: self._match(row), axis=1)
         dfPrize['signQty'] = dfPrize.apply(
             lambda arr: self._calcuQty(arr), axis=1)
+        # column 只留下matchQty、signQty、stdBalls、index (中獎、簽注數量、索引)
+        dfPrize.drop(columns=[
+            ('times', '小一'),  ('times', '小二'), ('times', '小三'), ('times', '小四'),
+            ('times', '小五'),  ('times', '小六'), ('times',
+                                                '小七'), ('times', '小八'), ('times', '小九'),
+            ('times', '大一'),  ('times', '大二'), ('times', '大三'), ('times', '大四'),
+            ('times', '大五'),  ('times', '大六'), ('times',
+                                                '大七'), ('times', '大八'), ('times', '大九'),
+            ('times', '零'),  ('balls', ''), ('signMark', ''), ('signFrtBall2Ds', ''),
+            ('relation2Ds', ''),  ('signBall2Ds', ''), ('signFrtBall2Ds', ''), ('times', 'num')], axis=1, inplace=True)
+
         if self._isToCsv:
             self._exportFile.exportCsv(
                 dfPrize, 'C:/Programs/bingo/bingo_scrapy/539_calcu', 'prize.csv')
@@ -686,10 +736,20 @@ class TestFiveThreeNinePrize(unittest.TestCase):
 if __name__ == '__main__':
 
     # region calcu workflow
+
+    dbContext = db.MSSQLDbContext({'server': 'wpdb2.hihosting.hinet.net', 'user': 'p89880749_p89880749',
+                                   'password': 'Jonny1070607!@#$%', 'database': 'p89880749_test'})
+
+    rows = dbContext.select(
+        'select drawNumberSize from Daily539 ORDER BY period')
+    inputs = list(map(lambda row: row['drawNumberSize'].split(','), rows))
+
+    print('')
+
+    # region db來源,未來抽換先用hard code,先用30期模擬
+
     # firstAna = 0
     # endAna = 50
-    # # region db來源,未來抽換先用hard code,先用30期模擬
-
     # sources = [
     #     # 2024/07/06-2024/07/02
     #     {'bigShowOrder': "04,21,24,33,35"}, {'bigShowOrder': "17,18,23,24,28"}, {
@@ -723,79 +783,101 @@ if __name__ == '__main__':
     #     {'bigShowOrder': "04,06,14,26,33"}, {'bigShowOrder': "07,11,18,20,22"}, {
     #         'bigShowOrder': "04,14,33,36,37"}, {'bigShowOrder': "01,07,11,15,29"}, {'bigShowOrder': "01,12,31,38,39"},
     # ]
+
     # results = list(
     #     map(lambda x: x['bigShowOrder'].split(','), sources))
     # results.reverse()
     # inputs = results[firstAna:endAna]
-    # # endregion
+    # endregion
 
-    # deferBallInfos = [
-    #     BallGroup('小一', 0), BallGroup('小二', 0), BallGroup(
-    #         '小三', 0), BallGroup('小四', 0), BallGroup('小五', 0),
-    #     BallGroup('大一', 0), BallGroup('大二', 0), BallGroup(
-    #         '大三', 0), BallGroup('大四', 0), BallGroup('大五', 0),
-    #     BallGroup('小六', 0), BallGroup('小七', 0), BallGroup(
-    #         '小八', 0), BallGroup('小九', 0),
-    #     BallGroup('大六', 0), BallGroup('大七', 0), BallGroup(
-    #         '大八', 0), BallGroup('大九', 0),
-    #     BallGroup('零', 0),
-    # ]
+    deferBallInfos = [
+        BallGroup('小一', 0), BallGroup('小二', 0), BallGroup(
+            '小三', 0), BallGroup('小四', 0), BallGroup('小五', 0),
+        BallGroup('大一', 0), BallGroup('大二', 0), BallGroup(
+            '大三', 0), BallGroup('大四', 0), BallGroup('大五', 0),
+        BallGroup('小六', 0), BallGroup('小七', 0), BallGroup(
+            '小八', 0), BallGroup('小九', 0),
+        BallGroup('大六', 0), BallGroup('大七', 0), BallGroup(
+            '大八', 0), BallGroup('大九', 0),
+        BallGroup('零', 0),
+    ]
 
-    # convertMark = ConvertMark()
-    # exportFile = ExportFile()
-    # deferCalcu = DeferCalcu(
-    #     exportFile=exportFile, deferBallInfos=deferBallInfos, convert=convertMark, isToCsv=True)
-    # dfDefer = deferCalcu.calcu(inputs)
+    convertMark = ConvertMark()
+    exportFile = ExportFile()
+    deferCalcu = DeferCalcu(
+        exportFile=exportFile, deferBallInfos=deferBallInfos, convert=convertMark, isToCsv=True)
+    dfDefer = deferCalcu.calcu(inputs)
 
-    # timesBallInfos = [BallGroup('小一', 0), BallGroup('小二', 0), BallGroup(
-    #     '小三', 0), BallGroup('小四', 0), BallGroup('小五', 0),
-    #     BallGroup('大一', 0), BallGroup('大二', 0), BallGroup(
-    #     '大三', 0), BallGroup('大四', 0), BallGroup('大五', 0),
-    #     BallGroup('小六', 0), BallGroup('小七', 0), BallGroup(
-    #     '小八', 0), BallGroup('小九', 0),
-    #     BallGroup('大六', 0), BallGroup('大七', 0), BallGroup(
-    #     '大八', 0), BallGroup('大九', 0),
-    #     BallGroup('零', 0),
-    # ]
+    timesBallInfos = [BallGroup('小一', 0), BallGroup('小二', 0), BallGroup(
+        '小三', 0), BallGroup('小四', 0), BallGroup('小五', 0),
+        BallGroup('大一', 0), BallGroup('大二', 0), BallGroup(
+        '大三', 0), BallGroup('大四', 0), BallGroup('大五', 0),
+        BallGroup('小六', 0), BallGroup('小七', 0), BallGroup(
+        '小八', 0), BallGroup('小九', 0),
+        BallGroup('大六', 0), BallGroup('大七', 0), BallGroup(
+        '大八', 0), BallGroup('大九', 0),
+        BallGroup('零', 0),
+    ]
 
-    # timesCalcu = TimesCalcu(
-    #     exportFile=exportFile, timesBallInfos=timesBallInfos, convert=convertMark, isToCsv=True)
-    # dfTimes = timesCalcu.calcu(inputs)
+    timesCalcu = TimesCalcu(
+        exportFile=exportFile, timesBallInfos=timesBallInfos, convert=convertMark, isToCsv=True)
+    dfTimes = timesCalcu.calcu(inputs)
 
-    # fiveThreeNineSign = FiveThreeNineSign(exportFile, convertMark, True)
-    # dfSign = fiveThreeNineSign.sign(dfDefer, dfTimes)
+    relationTerm = RelationTerm(inputs=inputs)
+    stategy = [StrategyPrize.Relation_Five_Compose,
+               StrategyPrize.Relation_Four_Compose, StrategyPrize.Take_Cold_TwenTy]
+    for stat in stategy:
+        fiveThreeNineSign = FiveThreeNineSign(
+            exportFile, convertMark, relationTerm, True)
+        fiveThreeNineSign.strategy = stat
+        dfSign = fiveThreeNineSign.sign(dfDefer, dfTimes)
 
-    # fiveThreeNinePrize = FiveThreeNinePrize(exportFile, convertMark, True)
-    # dfPrize = fiveThreeNinePrize.prize(inputs, dfSign)
-    # matchSum = dfPrize['matchQty'].sum()
-    # signSum = dfPrize['signQty'].sum()
-    # signMax = dfPrize['signQty'].max()
-    # term = 30
-    # profit = 1500 * matchSum
-    # cost = 25 * signSum
-    # print(f'profit:{profit}')
-    # print(f'cost:{cost}')
-    # with pd.ExcelWriter('C:/Programs/bingo/bingo_scrapy/539_calcu/merged.xlsx', engine='openpyxl') as writer:
-    #     # Write each DataFrame to a separate sheet
-    #     dfDefer.to_excel(writer, sheet_name='defer', index=False)
-    #     dfTimes.to_excel(writer, sheet_name='times', index=False)
+        fiveThreeNinePrize = FiveThreeNinePrize(exportFile, convertMark, True)
+        dfPrize = fiveThreeNinePrize.prize(inputs, dfSign)
 
-    # pass
+        # region 計算收益
+        matchSum = dfPrize['matchQty'].sum()
+        signSum = dfPrize['signQty'].sum()
+        signMax = dfPrize['signQty'].max()
+        profit = 1500 * matchSum
+        cost = 25 * signSum
+        actualProfit = profit - cost
+        print(f'actualProfit:{actualProfit}')
+        print(f'profit:{profit}')
+        print(f'cost:{cost}')
+        dfProfit = pd.DataFrame(
+            {'actualProfit': [actualProfit], 'profit': [profit], 'cost': [cost]})
+        # endregion
+
+        # dfSign.reset_index(level=None, inplace=True, drop=True)
+        resultFile = 'C:/Programs/bingo/bingo_scrapy/539_calcu/excel/merged_{}.xlsx'.format(
+            stat.name)
+        if os.path.exists(resultFile):
+            os.remove(resultFile)
+        with pd.ExcelWriter(resultFile, engine='openpyxl') as writer:
+            # Write each DataFrame to a separate sheet
+            dfDefer.to_excel(writer, sheet_name='defer', index=False)
+            dfTimes.to_excel(writer, sheet_name='times', index=False)
+            dfSign.to_excel(writer, sheet_name='sign', index=True)
+            dfPrize.to_excel(writer, sheet_name='prize', index=False)
+            dfProfit.to_excel(writer, sheet_name='profit', index=False)
+
+    pass
     # endregion
 
     # region test case
 
-    try:
-        suite = unittest.TestSuite()
-        suite.addTest(TestDeferCalcu('test_to_csv_df'))
-        suite.addTest(TestDeferCalcu('test_calcu_df'))
-        suite.addTest(TestConvertMark('test_ballToMark'))
-        suite.addTest(TestConvertMark('test_markToBalls'))
-        suite.addTest(TestFiveThreeNinePrize('test_prize'))
-        # suite.addTest(TestDeferCalcu('test_calcu_3mean'))
-        runner = unittest.TextTestRunner(verbosity=2)
-        runner.run(suite)
-    except SystemExit:
-        pass
+    # try:
+    #     suite = unittest.TestSuite()
+    #     suite.addTest(TestDeferCalcu('test_to_csv_df'))
+    #     suite.addTest(TestDeferCalcu('test_calcu_df'))
+    #     suite.addTest(TestConvertMark('test_ballToMark'))
+    #     suite.addTest(TestConvertMark('test_markToBalls'))
+    #     suite.addTest(TestFiveThreeNinePrize('test_prize'))
+    #     # suite.addTest(TestDeferCalcu('test_calcu_3mean'))
+    #     runner = unittest.TextTestRunner(verbosity=2)
+    #     runner.run(suite)
+    # except SystemExit:
+    #     pass
 
     # endregion
