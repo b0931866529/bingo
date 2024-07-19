@@ -490,6 +490,14 @@ class FiveThreeNineSign:
         self._hot_limit = 13
         pass
 
+    def _getState(self, row: pd.Series):
+        if row[('defer', 'var')] < 13.65:
+            return 'cold'
+        if len(row[('defer', 'markOutliers')]) < 2:
+            return 'cold'
+        return 'hot'
+        pass
+
     def sign(self, dfDefer: DataFrame, dfTimes: DataFrame) -> DataFrame:
 
         dfSign = pd.concat([dfDefer, dfTimes], axis=1, keys=['defer', 'times'])
@@ -515,8 +523,7 @@ class FiveThreeNineSign:
         # 後續再加上<10熱門求號 輸出4個
 
         # region 衍生欄位冷熱門球號、簽注分類、簽注球號計算方式
-        dfSign['state'] = dfSign['defer']['var'].apply(
-            lambda x: 'hot' if x > 0 else 'cold')
+        dfSign['state'] = dfSign.apply(lambda x: self._getState(x), axis=1)
         dfSign['balls'] = dfSign.apply(
             lambda row: self._convertRowAsc(row), axis=1)
         dfSign['signMark'] = dfSign.apply(
@@ -544,7 +551,8 @@ class FiveThreeNineSign:
         pass
 
     def _excludeSign(self, row: pd.Series):
-
+        if row['state'].tolist()[0] == 'cold':
+            return []
         return row['signFrtBall2Ds'].tolist()[0]
         # 目前暫定不做relation直接將冷門球號簽注
         sign2Ds = []
@@ -671,6 +679,19 @@ class FiveThreeNinePrize:
         self._isToCsv = isToCsv
         pass
 
+    def _varToQ(self, row: pd.Series):
+        Q1 = 7.27
+        Q2 = 10.48
+        Q3 = 13.65
+        if row[('defer', 'var')] < Q1:
+            return 'Q1'
+        elif row[('defer', 'var')] >= Q1 and row[('defer', 'var')] < Q2:
+            return 'Q2'
+        elif row[('defer', 'var')] >= Q2 and row[('defer', 'var')] < Q3:
+            return 'Q3'
+        elif row[('defer', 'var')] > Q3:
+            return 'Q4'
+
     def prize(self, inputs: List[str], dfSign: DataFrame) -> DataFrame:
 
         dfPrize = pd.DataFrame(inputs, columns=['1', '2', '3', '4', '5'])
@@ -696,10 +717,21 @@ class FiveThreeNinePrize:
         dfPrize['signQty'] = dfPrize.apply(
             lambda arr: self._calcuQty(arr), axis=1)
 
+        dfPrize['actualProfit'] = dfPrize['matchQty'] * \
+            1500 - dfPrize['signQty'] * 25
+        dfPrize['outlierQty'] = dfPrize.apply(
+            lambda row: len(row[('defer', 'markOutliers')]), axis=1)
+
         # 統計用:是否有簽注、是否都無命中
         dfPrize['isSign'] = dfPrize['signQty'] != 0
         dfPrize['isMatch'] = dfPrize.apply(
             lambda row: row['signQty'] != 0 and row['matchQty'] != 0, axis=1)
+
+        # 變異數四分位距
+       # Q1 = np.quantile(npArr, 0.25) #7.27
+        # Q2 = np.quantile(npArr, 0.5) #10.48
+        # Q3 = np.quantile(npArr, 0.75)#13.65
+        dfPrize['varQ'] = dfPrize.apply(lambda row: self._varToQ(row), axis=1)
 
         # column 只留下matchQty、signQty、stdBalls、index (中獎、簽注數量、索引)
         dfPrize.drop(columns=[
@@ -991,6 +1023,35 @@ if __name__ == '__main__':
         fiveThreeNinePrize = FiveThreeNinePrize(exportFile, convertMark, True)
         dfPrize = fiveThreeNinePrize.prize(inputs, dfSign)
 
+        # region 統計各區間利潤
+        # 計算變異數占比
+        # 計算離群值占比
+        # 各占比所獲得利潤
+
+        colOutlier = dfPrize.groupby('outlierQty').groups.keys()
+        countOutlier = dfPrize.groupby('outlierQty')['outlierQty'].count()
+
+        profitOutlier = dfPrize.groupby('outlierQty')[
+            'actualProfit'].sum().tolist()
+        dfOutlier = pd.DataFrame(
+            [profitOutlier, countOutlier], columns=colOutlier, index=['profit', 'num'])
+
+        # var 4分位距
+        colVar = dfPrize.groupby('varQ').groups.keys()
+        profitVar = dfPrize.groupby('varQ')[
+            'actualProfit'].sum().tolist()
+        dfVar = pd.DataFrame([profitVar], columns=colVar)
+        # arr = sorted(dfPrize[('defer', 'var')].tolist(), key=lambda e: e)
+        # npArr = np.array(arr)
+        # max = np.max(npArr)
+        # mean = np.mean(npArr)
+        # Q1 = np.quantile(npArr, 0.25) #7.27
+        # Q2 = np.quantile(npArr, 0.5) #10.48
+        # Q3 = np.quantile(npArr, 0.75)#13.65
+        print('')
+
+        # endregion
+
         # region 計算收益
         # signTerm = dfPrize['signQty'].count()
         signMax = dfPrize['signQty'].max()
@@ -1027,6 +1088,8 @@ if __name__ == '__main__':
             dfSign.to_excel(writer, sheet_name='sign', index=True)
             dfPrize.to_excel(writer, sheet_name='prize', index=False)
             dfProfit.to_excel(writer, sheet_name='profit', index=False)
+            dfOutlier.to_excel(writer, sheet_name='outlier', index=True)
+            dfVar.to_excel(writer, sheet_name='var', index=False)
 
     pass
     # endregion
