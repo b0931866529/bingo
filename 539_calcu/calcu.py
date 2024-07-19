@@ -370,6 +370,8 @@ class RelationTerm:
         # 使用apriori找出频繁项集
         frequent_itemsets = apriori(
             df, min_support=self._min_support, use_colnames=True)
+        if frequent_itemsets.empty:
+            return []
         # 生成关联规则
         rules = association_rules(
             frequent_itemsets, metric="confidence", min_threshold=self._min_threshold)
@@ -496,7 +498,7 @@ class FiveThreeNineSign:
 
         # region 衍生欄位冷熱門球號、簽注分類、簽注球號計算方式
         dfSign['state'] = dfSign['defer']['var'].apply(
-            lambda x: 'hot' if x >= self._hot_limit else 'cold')
+            lambda x: 'hot' if x >= 10 else 'cold')
         dfSign['balls'] = dfSign.apply(
             lambda row: self._convertRowAsc(row), axis=1)
         dfSign['signMark'] = dfSign.apply(
@@ -531,12 +533,14 @@ class FiveThreeNineSign:
             return sign2Ds
         for signBall2D in signFrtBall2Ds:
             for relation2D in relation2Ds:
-                if len(set(relation2D + signBall2D)) == 2 or len(set(relation2D + signBall2D)) == 3:
+                # test 完全命中
+                # if len(set(relation2D + signBall2D)) == 2 or len(set(relation2D + signBall2D)) == 3:
+                if len(set(relation2D + signBall2D)) == 2:
                     sign2Ds.append(signBall2D)
                     break
         # 球號太少組合無法精準判別
-        if len(sign2Ds) <= 20 or len(sign2Ds) >= 50:
-            return []
+        # if len(sign2Ds) >= 40:
+        #     return []
         return sign2Ds
         pass
 
@@ -969,10 +973,10 @@ if __name__ == '__main__':
         #     fiveThreeNineSign.frtTake = 10
 
         if stat == StrategyPrize.Relation_Five_Compose_12:
-            fiveThreeNineSign.frtTake = 12
-            fiveThreeNineSign.min_support = 0.1
-            fiveThreeNineSign.min_threshold = 0.8
-            fiveThreeNineSign.hot_limit = 13
+            fiveThreeNineSign.frtTake = 13
+            fiveThreeNineSign.min_support = 0.05
+            fiveThreeNineSign.min_threshold = 0.1
+            fiveThreeNineSign.hot_limit = 1
         # if stat == StrategyPrize.Relation_Five_Compose_15:
         #     fiveThreeNineSign.frtTake = 15
         # if stat == StrategyPrize.Relation_Five_Compose_20:
