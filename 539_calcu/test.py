@@ -1,5 +1,13 @@
 import pandas as pd
+import math
 
+n = 4
+k = 2
+
+# 计算组合数
+combinations = math.comb(n, k)
+
+print("")
 # 假設有兩個數據集
 data = {
     'x': [1, 2, 3, 4, 5],

@@ -14,6 +14,7 @@ from mlxtend.preprocessing import TransactionEncoder
 import itertools
 import db
 from enum import Enum
+import math
 
 
 class StrategyPrize(Enum):
@@ -26,6 +27,8 @@ class StrategyPrize(Enum):
 
 
 class ConvertMark:
+    """將球號分組"""
+
     def __init__(self) -> None:
         pass
 
@@ -151,6 +154,8 @@ class BallGroup:
 
 
 class ExportFile:
+    """注入ICalcu子類別結果產出DataFrame To Csv"""
+
     def __init__(self) -> None:
         pass
 
@@ -171,6 +176,8 @@ class ICalcu(ABC):
 
 
 class TimesCalcu(ICalcu):
+    """計算出分組標記累計次數"""
+
     def __init__(self, exportFile: ExportFile, timesBallInfos, convert: ConvertMark, isToCsv=False) -> None:
         self._exportFile = exportFile
         self._timesBallInfos = timesBallInfos
@@ -208,6 +215,8 @@ class TimesCalcu(ICalcu):
 
 
 class DeferCalcu(ICalcu):
+    """計算分組標記拖期次數,並衍生衡量集合離散欄位(標準差)、離群值欄位"""
+
     def __init__(self, exportFile: ExportFile, deferBallInfos, convert: ConvertMark, isToCsv=False) -> None:
         self._exportFile = exportFile
         self._deferBallInfos = deferBallInfos
@@ -322,7 +331,7 @@ class DeferCalcu(ICalcu):
 
 
 class RelationTerm:
-
+    """計算二球之間關聯式規則,參數可透過前幾期、最小支持、信賴度來做關卡,過濾二球以上關聯規則"""
     @property
     def min_support(self):
         return self.__min_support
@@ -420,7 +429,16 @@ class RelationTerm:
 
 
 class FiveThreeNineSign:
-
+    """
+    產出要簽注獎號策略:
+    1.冷門球號開始 order by
+    2.冷門球號過濾離群值
+    3.變異數在某個區間表示夠離散要回補
+    4.冷門球號做乘積組合(目前是笛卡爾乘積、但可能用指數)
+    5.過濾關聯式和冷門組合球號命中
+    6.過濾組合太多規則不明確不簽
+    7.過濾變異數下注範圍
+    """
     @property
     def strategy(self):
         return self._strategy
@@ -498,7 +516,7 @@ class FiveThreeNineSign:
 
         # region 衍生欄位冷熱門球號、簽注分類、簽注球號計算方式
         dfSign['state'] = dfSign['defer']['var'].apply(
-            lambda x: 'hot' if x >= 10 else 'cold')
+            lambda x: 'hot' if x > 0 else 'cold')
         dfSign['balls'] = dfSign.apply(
             lambda row: self._convertRowAsc(row), axis=1)
         dfSign['signMark'] = dfSign.apply(
@@ -526,6 +544,9 @@ class FiveThreeNineSign:
         pass
 
     def _excludeSign(self, row: pd.Series):
+
+        return row['signFrtBall2Ds'].tolist()[0]
+        # 目前暫定不做relation直接將冷門球號簽注
         sign2Ds = []
         signFrtBall2Ds = row['signFrtBall2Ds'].tolist()[0]
         relation2Ds = row['relation2Ds'].tolist()[0]
@@ -577,43 +598,24 @@ class FiveThreeNineSign:
         ball2Ds = []
         for mark in marks:
             ball2Ds.append(self._convert.markToBalls(mark))
-        ball2D1s = list(itertools.product(ball2Ds[0], ball2Ds[1]))
-        ball2D2s = list(itertools.product(ball2Ds[0], ball2Ds[2]))
-        ball2D3s = list(itertools.product(ball2Ds[0], ball2Ds[3]))
-        ball2D4s = list(itertools.product(ball2Ds[0], ball2Ds[4]))
-        ball2D5s = list(itertools.product(ball2Ds[0], ball2Ds[5]))
-        ball2D6s = list(itertools.product(ball2Ds[0], ball2Ds[6]))
 
-        ball2D7s = list(itertools.product(ball2Ds[1], ball2Ds[2]))
-        ball2D8s = list(itertools.product(ball2Ds[1], ball2Ds[3]))
-        ball2D9s = list(itertools.product(ball2Ds[1], ball2Ds[4]))
-        ball2D10s = list(itertools.product(ball2Ds[1], ball2Ds[5]))
-        ball2D11s = list(itertools.product(ball2Ds[1], ball2Ds[6]))
+        # 合并所有列表
+        combined_list = ball2Ds[0] + ball2Ds[1] + \
+            ball2Ds[2] + ball2Ds[3] + ball2Ds[4]
 
-        ball2D12s = list(itertools.product(ball2Ds[2], ball2Ds[3]))
-        ball2D13s = list(itertools.product(ball2Ds[2], ball2Ds[4]))
-        ball2D14s = list(itertools.product(ball2Ds[2], ball2Ds[5]))
-        ball2D15s = list(itertools.product(ball2Ds[2], ball2Ds[6]))
+        # 生成两个元素为一组的组合
+        tpCombinations = list(itertools.product(combined_list, repeat=2))
+        combinations = [list(tp) for tp in tpCombinations]
 
-        ball2D16s = list(itertools.product(ball2Ds[3], ball2Ds[4]))
-        ball2D17s = list(itertools.product(ball2Ds[3], ball2Ds[5]))
-        ball2D18s = list(itertools.product(ball2Ds[3], ball2Ds[6]))
+        for arr in combinations:
+            if any(len(set(arr + ele)) == 2 for ele in ball2DResults) == False and arr[0] != arr[1]:
+                ball2DResults.append(arr)
 
-        ball2D19s = list(itertools.product(ball2Ds[4], ball2Ds[5]))
-        ball2D20s = list(itertools.product(ball2Ds[4], ball2Ds[6]))
+        # 驗證是否有重複組合,若有print
+        excepted = math.comb(len(combined_list), 2)
+        if excepted != len(ball2DResults):
+            print('有重複組合')
 
-        ball2D21s = list(itertools.product(ball2Ds[5], ball2Ds[6]))
-
-        itertool2Ds = [
-            ball2D1s, ball2D2s, ball2D3s, ball2D4s, ball2D5s,
-            ball2D6s, ball2D7s, ball2D8s, ball2D9s, ball2D10s,
-            ball2D11s, ball2D12s, ball2D13s, ball2D14s, ball2D15s,
-            ball2D16s, ball2D17s, ball2D18s, ball2D19s, ball2D20s,
-            ball2D21s,
-        ]
-        for arr2D in itertool2Ds:
-            for tp in arr2D:
-                ball2DResults.append(list(tp))
         return ball2DResults
         pass
 
@@ -621,8 +623,7 @@ class FiveThreeNineSign:
         if int(row['index']) < self._frtTake:
             return []
         arr = row['balls'].tolist()[0]
-        isProduct = True
-        take = 7
+        take = 5
         if str(row['state'].tolist()[0]) == 'hot':
             arr.reverse()
             arrHot = []
@@ -662,6 +663,8 @@ class FiveThreeNineSign:
 
 
 class FiveThreeNinePrize:
+    """檢驗簽注號碼是否命中,並統計當期簽注和命中數量、是否簽注和命中"""
+
     def __init__(self, exportFile: ExportFile, convert: ConvertMark, isToCsv=False) -> None:
         self._convert = convert
         self._exportFile = exportFile
@@ -877,7 +880,7 @@ if __name__ == '__main__':
                                    'password': 'Jonny1070607!@#$%', 'database': 'p89880749_test'})
 
     rows = dbContext.select(
-        'select drawNumberSize from Daily539 ORDER BY period')
+        'select drawNumberSize,lotteryDate from Daily539 ORDER BY period')
     inputs = list(map(lambda row: row['drawNumberSize'].split(','), rows))
 
     print('')
@@ -973,9 +976,9 @@ if __name__ == '__main__':
         #     fiveThreeNineSign.frtTake = 10
 
         if stat == StrategyPrize.Relation_Five_Compose_12:
-            fiveThreeNineSign.frtTake = 13
-            fiveThreeNineSign.min_support = 0.05
-            fiveThreeNineSign.min_threshold = 0.1
+            fiveThreeNineSign.frtTake = 12
+            fiveThreeNineSign.min_support = 0.15
+            fiveThreeNineSign.min_threshold = 0.6
             fiveThreeNineSign.hot_limit = 1
         # if stat == StrategyPrize.Relation_Five_Compose_15:
         #     fiveThreeNineSign.frtTake = 15
@@ -1044,3 +1047,38 @@ if __name__ == '__main__':
     #     pass
 
     # endregion
+
+
+# 優化
+# DeferCalcu、TimesCalcu 提煉ICalcu to csv path
+# 離群值提煉class,並透過相依注入
+
+
+# 策略
+# 關聯式規則是用在類似離群背景值、而不是動態
+# 研究頻率各項目如何計算
+# 確認笛卡爾乘積是否2的3次方
+
+
+# 關聯式規則注中二者之間關聯 (關聯並不受變異數影響,可能要加入在關聯變數內)
+# 冷門注重再回補次數
+# 目前是冷門有符合關聯才match進去
+
+
+# 修改
+# 變異數占比統計波動
+# 了解離群值占比
+# 無離群值中獎獲利
+
+# 計算變異數占比
+# 計算離群值占比
+# 各占比所獲得利潤
+
+# 假定變異數變大會產生要補冷門求號，但關聯式規則應該要加入變異數
+# 並且應是透過
+# 個人感覺二者策略有衝突，關聯式規則應是增加而不是過濾
+# 動態調整萃取關聯式規則
+
+# 確定規則
+# 離群值對簽注是有幫助的
+# 有多少是有過濾掉離群值
