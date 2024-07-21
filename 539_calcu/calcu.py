@@ -620,7 +620,7 @@ class FiveThreeNineSign:
 
         # 合并所有列表
         combined_list = ball2Ds[0] + ball2Ds[1] + \
-            ball2Ds[2] + ball2Ds[3]
+            ball2Ds[2] + ball2Ds[3] + ball2Ds[4] + ball2Ds[5]
 
         # 生成两个元素为一组的组合
         tpCombinations = list(itertools.product(combined_list, repeat=2))
@@ -642,7 +642,7 @@ class FiveThreeNineSign:
         if int(row['index']) < self._frtTake:
             return []
         arr = row['ballBefs'].tolist()[0]
-        take = 4
+        take = 6
         if str(row['state'].tolist()[0]) == 'hot':
             arr.reverse()
             arrHot = []
