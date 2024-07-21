@@ -1,6 +1,7 @@
-from math import exp
+from math import exp, nan
 import re
 from typing import List
+from matplotlib import axis
 import numpy as np
 import pandas as pd
 from pandas import DataFrame
@@ -491,9 +492,11 @@ class FiveThreeNineSign:
         pass
 
     def _getState(self, row: pd.Series):
-        if row[('defer', 'var')] < 13.65:
+        if np.isnan(row['varBef'].values[0]):
             return 'cold'
-        if len(row[('defer', 'markOutliers')]) < 2:
+        if row['varBef'].values[0] < 13.65:
+            return 'cold'
+        if len(row['markOutlierBefs'][0]) < 2:
             return 'cold'
         return 'hot'
         pass
@@ -523,17 +526,25 @@ class FiveThreeNineSign:
         # 後續再加上<10熱門求號 輸出4個
 
         # region 衍生欄位冷熱門球號、簽注分類、簽注球號計算方式
+
+        # 這二個欄位是用來判斷是否簽注
+        dfSign['varBef'] = dfSign[('defer', 'var')].shift(1).astype(float)
+        dfSign['markOutlierBefs'] = dfSign[('defer', 'markOutliers')].shift(1)
         dfSign['state'] = dfSign.apply(lambda x: self._getState(x), axis=1)
+
         dfSign['balls'] = dfSign.apply(
             lambda row: self._convertRowAsc(row), axis=1)
+
+        dfSign['ballBefs'] = dfSign['balls'].shift(1)
+
         dfSign['signMark'] = dfSign.apply(
             lambda row: self._getSign(row), axis=1)
         dfSign['signFrtBall2Ds'] = dfSign.apply(
             lambda row: self._getBalls(row), axis=1)
 
         # 要修改增加關聯式過濾規則
-        dfSign['relation2Ds'] = dfSign.apply(
-            lambda row: self._getRelation(row), axis=1)
+        # dfSign['relation2Ds'] = dfSign.apply(
+        #     lambda row: self._getRelation(row), axis=1)
 
         # 將有吻合關聯式才簽牌,只要其中之一有命中就算
         dfSign['signBall2Ds'] = dfSign.apply(
@@ -596,7 +607,7 @@ class FiveThreeNineSign:
 
     def _getBalls(self, row: pd.Series):
         marks = row['signMark'].tolist()[0]
-        if len(marks) == 0:
+        if marks == None or len(marks) == 0:
             return []
 
         ball2DResults = []
@@ -609,7 +620,7 @@ class FiveThreeNineSign:
 
         # 合并所有列表
         combined_list = ball2Ds[0] + ball2Ds[1] + \
-            ball2Ds[2] + ball2Ds[3] + ball2Ds[4]
+            ball2Ds[2] + ball2Ds[3]
 
         # 生成两个元素为一组的组合
         tpCombinations = list(itertools.product(combined_list, repeat=2))
@@ -630,19 +641,17 @@ class FiveThreeNineSign:
     def _getSign(self, row: pd.Series):
         if int(row['index']) < self._frtTake:
             return []
-        arr = row['balls'].tolist()[0]
-        take = 5
+        arr = row['ballBefs'].tolist()[0]
+        take = 4
         if str(row['state'].tolist()[0]) == 'hot':
             arr.reverse()
             arrHot = []
             # 離群值移除
             for ele in arr:
-                if any(ele == c for c in row[('defer', 'markOutliers')]):
+                if any(ele == c for c in row['markOutlierBefs']):
                     continue
                 arrHot.append(ele)
             return arrHot[0:take]
-        elif str(row['state'].tolist()[0]) == 'cold':
-            return arr[0:take]
         pass
 
     def _convertRowAsc(self, row: pd.Series):
@@ -683,14 +692,20 @@ class FiveThreeNinePrize:
         Q1 = 7.27
         Q2 = 10.48
         Q3 = 13.65
-        if row[('defer', 'var')] < Q1:
+        if np.isnan(row[('varBef', '')]) or row[('varBef', '')] < Q1:
             return 'Q1'
-        elif row[('defer', 'var')] >= Q1 and row[('defer', 'var')] < Q2:
+        elif row[('varBef', '')] >= Q1 and row[('varBef', '')] < Q2:
             return 'Q2'
-        elif row[('defer', 'var')] >= Q2 and row[('defer', 'var')] < Q3:
+        elif row[('varBef', '')] >= Q2 and row[('varBef', '')] < Q3:
             return 'Q3'
-        elif row[('defer', 'var')] > Q3:
+        elif row[('varBef', '')] > Q3:
             return 'Q4'
+
+    def _toOutlierQty(self, row: pd.Series):
+        if row[('markOutlierBefs', '')] == None:
+            return 0
+        return len(row[('markOutlierBefs', '')])
+        pass
 
     def prize(self, inputs: List[str], dfSign: DataFrame) -> DataFrame:
 
@@ -720,7 +735,7 @@ class FiveThreeNinePrize:
         dfPrize['actualProfit'] = dfPrize['matchQty'] * \
             1500 - dfPrize['signQty'] * 25
         dfPrize['outlierQty'] = dfPrize.apply(
-            lambda row: len(row[('defer', 'markOutliers')]), axis=1)
+            lambda arr: self._toOutlierQty(arr), axis=1)
 
         # 統計用:是否有簽注、是否都無命中
         dfPrize['isSign'] = dfPrize['signQty'] != 0
@@ -742,7 +757,7 @@ class FiveThreeNinePrize:
             ('times', '大五'),  ('times', '大六'), ('times',
                                                 '大七'), ('times', '大八'), ('times', '大九'),
             ('times', '零'),  ('balls', ''), ('signMark', ''), ('signFrtBall2Ds', ''),
-            ('relation2Ds', ''),  ('signBall2Ds', ''), ('signFrtBall2Ds', ''), ('times', 'num')], axis=1, inplace=True)
+            ('signBall2Ds', ''), ('signFrtBall2Ds', ''), ('times', 'num')], axis=1, inplace=True)
 
         if self._isToCsv:
             self._exportFile.exportCsv(
@@ -1059,7 +1074,8 @@ if __name__ == '__main__':
             list(filter(lambda e: e == True, dfPrize['isSign'].values)))
         matchTerm = len(
             list(filter(lambda e: e == True, dfPrize['isMatch'].values)))
-        termPercent = matchTerm / signTerm
+        # termPercent = matchTerm / signTerm
+        termPercent = 0
         termFormatedPercent = '{:.2%}'.format(termPercent)
         matchSumQty = dfPrize['matchQty'].sum()
         signSumQty = dfPrize['signQty'].sum()
