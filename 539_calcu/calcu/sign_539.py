@@ -3,9 +3,41 @@ import math
 from typing import List
 import numpy as np
 import pandas as pd
-from pandas import DataFrame
+from pandas import DataFrame, Series
 from calcu import ExportFile, DeferCalcu, TimesCalcu, ConvertMark, Quantile, BeginConvertMark, DfInfo
 import db
+from match import FiveThreeNineMatch, MatchInfo
+
+
+class FiveThreeNinePrize:
+    """檢驗簽注號碼是否命中,並統計當期簽注和命中數量、是否簽注和命中"""
+
+    def __init__(self, exportFile: ExportFile, match: FiveThreeNineMatch, isToCsv=False, path=None, filename=None) -> None:
+        self._exportFile = exportFile
+        self._isToCsv = isToCsv
+        self._match = match
+        self._path = path
+        self._filename = filename
+        pass
+
+    def _matchQty(self, row: Series):
+        inputs = row[('times', 'num')]
+        sign2Ds = row['signBall2Ds'].tolist()[0]
+        matchInfo = self._match.match(inputs, sign2Ds)
+        return matchInfo.matchQty
+        pass
+
+    def prize(self, dfSign: DataFrame) -> DataFrame:
+
+        dfPrize = dfSign.copy(deep=True)
+        dfPrize['matchQty'] = dfSign.apply(
+            lambda row: self._matchQty(row), axis=1)
+        if self._isToCsv and self._path is not None and self._filename is not None:
+            self._exportFile.exportExcel(
+                [dfPrize], ['dfPrize'], self._path, self._filename)
+        return dfPrize
+
+    pass
 
 
 class FiveThreeNineSign:
@@ -199,4 +231,11 @@ if __name__ == '__main__':
     fiveThreeNineSign = FiveThreeNineSign(exportFile, True, path, filename)
     fiveThreeNineSign.take = 4
     dfSign = fiveThreeNineSign.sign(dfs, keys)
+
+    pathPrize = 'C:/Programs/bingo/bingo_scrapy/539_calcu'
+    filenamePrize = 'prize.xlsx'
+    fiveThreeNineMatch = FiveThreeNineMatch()
+    fiveThreeNinePrize = FiveThreeNinePrize(
+        exportFile, fiveThreeNineMatch, True, pathPrize, filenamePrize)
+    dfPrize = fiveThreeNinePrize.prize(dfSign)
     pass
