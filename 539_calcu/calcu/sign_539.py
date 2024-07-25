@@ -7,60 +7,39 @@ from pandas import DataFrame, Series
 from calcu import ExportFile, DeferCalcu, TimesCalcu, ConvertMark, Quantile, BeginConvertMark, DfInfo
 import db
 from match import FiveThreeNineMatch, MatchInfo
-
-
-class FiveThreeNinePrize:
-    """檢驗簽注號碼是否命中,並統計當期簽注和命中數量、是否簽注和命中"""
-
-    def __init__(self, exportFile: ExportFile, match: FiveThreeNineMatch, isToCsv=False, path=None, filename=None) -> None:
-        self._exportFile = exportFile
-        self._isToCsv = isToCsv
-        self._match = match
-        self._path = path
-        self._filename = filename
-        pass
-
-    def _matchQty(self, row: Series):
-        inputs = row[('times', 'num')]
-        sign2Ds = row['signBall2Ds'].tolist()[0]
-        matchInfo = self._match.match(inputs, sign2Ds)
-        return matchInfo.matchQty
-        pass
-
-    def prize(self, dfSign: DataFrame) -> DataFrame:
-
-        dfPrize = dfSign.copy(deep=True)
-        dfPrize['matchQty'] = dfSign.apply(
-            lambda row: self._matchQty(row), axis=1)
-        if self._isToCsv and self._path is not None and self._filename is not None:
-            self._exportFile.exportExcel(
-                [dfPrize], ['dfPrize'], self._path, self._filename)
-        return dfPrize
-
-    pass
+from prize_539 import FiveThreeNinePrize
 
 
 class FiveThreeNineSign:
     """
     產出要簽注獎號策略:
-    1.球號次數order desc
+    1.球號次數order asc
     2.球號濾離群值(參數設定離群值過濾與否)
     3.變異數在某個區間表示夠離散要回補(參數設定變異數過濾與否)
     4.冷門球號組數做乘積組合(用指數)
     """
+
     @property
+    def includeColumns(self):
+        return self._includeColumns
+
+    @includeColumns.setter
+    def includeColumns(self, value):
+        self._includeColumns = value
+
+    @ property
     def strategy(self):
         return self._strategy
 
-    @strategy.setter
+    @ strategy.setter
     def strategy(self, value):
         self._strategy = value
 
-    @property
+    @ property
     def take(self):
         return self._take
 
-    @take.setter
+    @ take.setter
     def take(self, value):
         self._take = value
 
@@ -74,38 +53,22 @@ class FiveThreeNineSign:
         self._take = 4
         self._path = path
         self._filename = filename
+        self._includeColumns = []
         pass
 
     def _getState(self, row: pd.Series):
         """hot簽注、cold不簽注，未來增加其他狀態判別方法"""
-        if row['index'].tolist()[0] > self._frtSkip:
-            return 'hot'
-        return 'cold'
-        if np.isnan(row['varBef'].values[0]):
+        if row['index'].tolist()[0] < self._frtSkip:
             return 'cold'
-        if row['varBef'].values[0] < 13.65:
-            return 'cold'
-        if len(row['markOutlierBefs'][0]) < 2:
-            return 'cold'
+        # if row[('deferMark', 'varQ')] != 'Q2':
+        #     return 'cold'
+        # if np.isnan(row['varBef'].values[0]):
+        #     return 'cold'
+        # if row['varBef'].values[0] < 13.65:
+        #     return 'cold'
+        # if len(row['markOutlierBefs'][0]) < 2:
+        #     return 'cold'
         return 'hot'
-        pass
-
-    def _excludeOutlier(self, row: pd.Series):
-        """排除離群值,並且設定取得前幾組"""
-        if row['state'] == 'cold':
-            return []
-        row['times_asc']
-        arr = row['ballBefs'].tolist()[0]
-        take = 6
-        if str(row['state'].tolist()[0]) == 'hot':
-            arr.reverse()
-            arrHot = []
-            # 離群值移除
-            for ele in arr:
-                if any(ele == c for c in row['markOutlierBefs']):
-                    continue
-                arrHot.append(ele)
-            return arrHot[0:take]
         pass
 
     def _compose2GroupBall2Ds(self, row: pd.Series):
@@ -132,10 +95,10 @@ class FiveThreeNineSign:
         pass
 
     def _excludeOutlierAndVarQ(self, row: pd.Series, deferKeys: List[str]):
-        if row['state'].tolist()[0] == 'cold':
+        if row['state'].tolist()[0] == 'cold' or row['state'].tolist()[0] == None:
             return []
 
-        arr = row['times_desc'].tolist()[0]
+        arr = row['times_asc'].tolist()[0]
         results = []
         for ele in arr:
             isExist = False
@@ -161,7 +124,7 @@ class FiveThreeNineSign:
         # region 衍生欄位冷熱門球號、簽注分類、簽注球號計算方式
         # 判別是否簽注
         dfSign['state'] = dfSign.apply(lambda x: self._getState(x), axis=1)
-
+        dfSign['state'] = dfSign['state'].shift(1)
         # 這二個欄位是用來判斷是否簽注
         skipTimesKeys = keys[:-1]
 
@@ -173,7 +136,7 @@ class FiveThreeNineSign:
 
         # loop會有多個拖期
 
-        dfSign[f'{keys[-1]}_desc'] = dfSign[(keys[-1], 'desc')].shift(1)
+        dfSign[f'{keys[-1]}_asc'] = dfSign[(keys[-1], 'asc')].shift(1)
         # # 過濾離散組合(且這邊設定take幾組)
         dfSign['excludeBalls'] = dfSign.apply(
             lambda row: self._excludeOutlierAndVarQ(row, skipTimesKeys), axis=1)
@@ -184,10 +147,22 @@ class FiveThreeNineSign:
 
         # endregion
 
+        dfSignInfo = DfInfo()
+        dfSignInfo.df = dfSign
+        if len(self.includeColumns) != 0:
+            dropColumns = []
+            for column in dfSign.columns:
+                if any(column == includeColumn for includeColumn in self.includeColumns) == False:
+                    dropColumns.append(column)
+                pass
+            dfDropTimes = dfSign.copy(deep=True)
+            dfDropTimes.drop(columns=dropColumns, inplace=True)
+            dfSignInfo.dfDrop = dfDropTimes
+
         if self._isToCsv and self._path is not None and self._filename is not None:
             self._exportFile.exportExcel(
-                [dfSign], ['dfSign'], self._path, self._filename)
-        return dfSign
+                [dfSignInfo.df, dfSignInfo.dfDrop], ['df', 'dfDrop'], self._path, self._filename)
+        return dfSignInfo
         pass
 
 
@@ -202,40 +177,62 @@ if __name__ == '__main__':
     # endregion
 
     # region dfTimes、dfDefer
-    exportFile = ExportFile()
-    convertMark = ConvertMark()
-    quantile = Quantile()
-    quantile.cutFrt = 0
-    quantile.cutEnd = 19
-    deferMarkCalcu = DeferCalcu(exportFile, convertMark, quantile)
-    deferMarkCalcu.includeColumns = ['numOutliers', 'varQ']
-    dfDeferMarkInfo = deferMarkCalcu.calcu(inputs)
+    # limits = [0.3, 0.5, 0.7, 0.9, 1.1, 1.3, 1.5]
+    limits = [1]
+    for limit in limits:
+        exportFile = ExportFile()
+        convertMark = ConvertMark()
+        quantile = Quantile()
+        quantile.cutFrt = 0
+        quantile.cutEnd = 19
+        quantile.upperLimit = limit
+        deferMarkCalcu = DeferCalcu(exportFile, convertMark, quantile)
+        deferMarkCalcu.includeColumns = ['numOutliers', 'varQ']
+        dfDeferMarkInfo = deferMarkCalcu.calcu(inputs)
 
-    quantile.cutFrt = 0
-    quantile.cutEnd = 39
-    beginConvertMark = BeginConvertMark()
-    deferBallCalcu = DeferCalcu(exportFile, beginConvertMark, quantile)
-    deferBallCalcu.includeColumns = ['numOutliers', 'varQ']
-    dfDeferBallInfo = deferBallCalcu.calcu(inputs)
+        quantile.cutFrt = 0
+        quantile.cutEnd = 39
+        beginConvertMark = BeginConvertMark()
+        deferBallCalcu = DeferCalcu(exportFile, beginConvertMark, quantile)
+        deferBallCalcu.includeColumns = ['numOutliers', 'varQ']
+        dfDeferBallInfo = deferBallCalcu.calcu(inputs)
 
-    timesCalcu = TimesCalcu(exportFile, beginConvertMark, quantile)
-    quantile.cutFrt = 0
-    quantile.cutEnd = 39
-    timesCalcu.includeColumns = ['num', 'desc']
-    dfTimesInfo = timesCalcu.calcu(inputs)
-    # endregion
-    keys = ['deferMark', 'deferBall', 'times']
-    dfs = [dfDeferMarkInfo.dfDrop, dfDeferBallInfo.dfDrop, dfTimesInfo.dfDrop]
-    path = 'C:/Programs/bingo/bingo_scrapy/539_calcu'
-    filename = 'sign.xlsx'
-    fiveThreeNineSign = FiveThreeNineSign(exportFile, True, path, filename)
-    fiveThreeNineSign.take = 4
-    dfSign = fiveThreeNineSign.sign(dfs, keys)
+        timesCalcu = TimesCalcu(exportFile, beginConvertMark, quantile)
+        quantile.cutFrt = 0
+        quantile.cutEnd = 39
+        timesCalcu.includeColumns = ['num', 'asc']
+        dfTimesInfo = timesCalcu.calcu(inputs)
+        # endregion
+        keys = ['deferMark', 'deferBall', 'times']
+        dfs = [dfDeferMarkInfo.dfDrop,
+               dfDeferBallInfo.dfDrop, dfTimesInfo.dfDrop]
 
-    pathPrize = 'C:/Programs/bingo/bingo_scrapy/539_calcu'
-    filenamePrize = 'prize.xlsx'
-    fiveThreeNineMatch = FiveThreeNineMatch()
-    fiveThreeNinePrize = FiveThreeNinePrize(
-        exportFile, fiveThreeNineMatch, True, pathPrize, filenamePrize)
-    dfPrize = fiveThreeNinePrize.prize(dfSign)
+        for take in range(8, 9):
+            pathSign = 'C:/Programs/bingo/bingo_scrapy/539_calcu'
+            filenameSign = f'sign{take}_{limit}.xlsx'
+            fiveThreeNineSign = FiveThreeNineSign(
+                exportFile, True, pathSign, filenameSign)
+            fiveThreeNineSign.take = take
+            fiveThreeNineSign._frtSkip = 50
+            groupKeys = ['varQ', 'numOutliers']
+            varQIncludeColumns = []
+            numOutliersIncludeColumns = []
+
+            for key in keys[:-1]:
+                varQIncludeColumns.append((f'{key}_varQ', ''))
+                numOutliersIncludeColumns.append((f'{key}_numOutliers', ''))
+
+            fiveThreeNineSign.includeColumns = [
+                ('times', 'num'), ('times', 'asc'), ('signBall2Ds', '')]
+            fiveThreeNineSign.includeColumns.extend(varQIncludeColumns)
+            fiveThreeNineSign.includeColumns.extend(numOutliersIncludeColumns)
+            dfSignInfo = fiveThreeNineSign.sign(dfs, keys)
+
+            pathPrize = 'C:/Programs/bingo/bingo_scrapy/539_calcu'
+            filenamePrize = f'prize{take}_{limit}.xlsx'
+            fiveThreeNineMatch = FiveThreeNineMatch()
+            fiveThreeNinePrize = FiveThreeNinePrize(
+                exportFile, fiveThreeNineMatch, True, pathPrize, filenamePrize)
+            dfPrize = fiveThreeNinePrize.prize(
+                dfSignInfo.dfDrop, varQIncludeColumns, numOutliersIncludeColumns)
     pass
