@@ -8,6 +8,7 @@ from calcu import ExportFile, DeferCalcu, TimesCalcu, ConvertMark, Quantile, Beg
 import db
 from match import FiveThreeNineMatch, MatchInfo
 from prize_539 import FiveThreeNinePrize
+from exclude import StateExclude
 
 
 class FiveThreeNineSign:
@@ -43,7 +44,7 @@ class FiveThreeNineSign:
     def take(self, value):
         self._take = value
 
-    def __init__(self, exportFile: ExportFile, isToCsv=False, path=None, filename=None) -> None:
+    def __init__(self, exportFile: ExportFile, stateExclude: StateExclude, isToCsv=False, path=None, filename=None) -> None:
         self._exportFile = exportFile
         self._isToCsv = isToCsv
         self._hot_limit = 13
@@ -54,9 +55,11 @@ class FiveThreeNineSign:
         self._path = path
         self._filename = filename
         self._includeColumns = []
+        self._stateExclude = stateExclude
         pass
 
     def _getState(self, row: pd.Series):
+        return self._stateExclude.exclude(row)
         """hot簽注、cold不簽注，未來增加其他狀態判別方法"""
         if row['index'].tolist()[0] < self._frtSkip:
             return 'cold'
@@ -178,7 +181,7 @@ if __name__ == '__main__':
 
     # region dfTimes、dfDefer
     # limits = [0.3, 0.5, 0.7, 0.9, 1.1, 1.3, 1.5]
-    limits = [1]
+    limits = [1.5]
     for limit in limits:
         exportFile = ExportFile()
         convertMark = ConvertMark()
@@ -207,11 +210,26 @@ if __name__ == '__main__':
         dfs = [dfDeferMarkInfo.dfDrop,
                dfDeferBallInfo.dfDrop, dfTimesInfo.dfDrop]
 
+        """設定要排除條件"""
+        def excludeState(row: pd.Series):
+            if row['index'].tolist()[0] < 10:
+                return True
+            if row[('deferMark', 'varQ')] != 'Q2':
+                return True
+            if row[('deferBall', 'varQ')] != 'Q2':
+                return True
+            if len(row[('deferBall', 'varQ')]) != 'Q2':
+                return True
+            return False
+
         for take in range(8, 9):
             pathSign = 'C:/Programs/bingo/bingo_scrapy/539_calcu'
             filenameSign = f'sign{take}_{limit}.xlsx'
+
+            stateExclude = StateExclude(excludeState)
+
             fiveThreeNineSign = FiveThreeNineSign(
-                exportFile, True, pathSign, filenameSign)
+                exportFile, stateExclude, True, pathSign, filenameSign)
             fiveThreeNineSign.take = take
             fiveThreeNineSign._frtSkip = 50
             groupKeys = ['varQ', 'numOutliers']
