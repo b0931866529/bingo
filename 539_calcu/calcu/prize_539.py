@@ -64,7 +64,7 @@ class FiveThreeNinePrize:
                 'profit'].sum().tolist()
             profitVar2Ds.append(profitVar)
         dfVar = pd.DataFrame(profitVar2Ds, columns=colVar, index=varQColumns)
-
+        # region 離散組數數量利潤計算
         numOutlier2Ds = []
         colNumOutlier2Ds = []
         for numOutliersColumn in numOutliersColumns:
@@ -83,11 +83,28 @@ class FiveThreeNinePrize:
         dfOutlier = pd.DataFrame(
             numOutlier2Ds, columns=colNumOutlier2Ds[0], index=numOutliersColumns)
         dfOutlier.fillna(0, inplace=True)
+        # endregion
 
+        miss2Ds = []
+        misses = []
+        # 和標準值計算二者之間是否閃避、未閃避數量
+        for numOutliersColumn in numOutliersColumns:
+            nameMissQty = str(numOutliersColumn).split("'")[1] + '_missQty'
+            nameNotMissQty = str(numOutliersColumn).split("'")[
+                1] + '_notMissQty'
+            missQty = dfPrize[nameMissQty].sum()
+            notMissQty = dfPrize[nameNotMissQty].sum()
+            allQty = missQty + notMissQty
+            percentMiss = missQty / allQty
+            misses.append(percentMiss)
+            pass
+        miss2Ds.append(misses)
+        dfMiss = pd.DataFrame(
+            miss2Ds, columns=numOutliersColumns)
         dfParameter = self._getParameter(dfPrize)
         if self._isToCsv and self._path is not None and self._filename is not None:
             self._exportFile.exportExcel(
-                [dfPrize, dfParameter, dfVar, dfOutlier], ['dfPrize', 'dfParameter', 'dfVar', 'dfOutlier'], self._path, self._filename)
+                [dfPrize, dfParameter, dfVar, dfOutlier, dfMiss], ['dfPrize', 'dfParameter', 'dfVar', 'dfOutlier', 'dfMiss'], self._path, self._filename)
         return dfPrize
 
     pass

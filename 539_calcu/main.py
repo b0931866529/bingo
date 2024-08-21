@@ -926,16 +926,152 @@ class TestFiveThreeNinePrize(unittest.TestCase):
 
 if __name__ == '__main__':
 
+    # region 計算皮爾森相關係數
+    # import numpy as np
+    # x = [1, 2, 3, 4, 5]
+    # y = [2, 4, 6, 8, 10]
+    # correlation_matrix = np.corrcoef(x, y)
+    # pearson_correlation = correlation_matrix[0, 1]
+    # print(f"Pearson Correlation Coefficient: {pearson_correlation}")
+    # endregion
+
+    # region 計算眾數
+    # from scipy import stats
+    # # 數據
+    # data = [1, 2, 2, 3, 4, 4, 4, 5, 5]
+    # mode_result = stats.mode(data)
+    # print(f"眾數: {mode_result.mode}, 出現次數: {mode_result.count}")
+    # endregion
+
+    # region t檢定
+    # import numpy as np
+    # from scipy import stats
+    # # 數據
+    # data = [102, 98, 100, 105, 97, 101, 99, 103, 100, 98]
+    # # 零假設的平均值
+    # mu = 100
+    # # 單樣本 t 檢定
+    # t_statistic, p_value = stats.ttest_1samp(data, mu)
+    # print(f'T-statistic: {t_statistic}')
+    # print(f'P-value: {p_value}')
+    # # 顯著性水平
+    # alpha = 0.05
+    # # 做出決策
+    # if p_value < alpha:
+    #     print("拒絕零假設 (H0)，數據的平均值不等於 100")
+    # else:
+    #     print("不拒絕零假設 (H0)，數據的平均值等於 100")
+    # endregion
+
+    # region 數據範圍
+    # 數據集
+    # data = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+
+    # # 計算最大值
+    # max_value = max(data)
+
+    # # 計算最小值
+    # min_value = min(data)
+
+    # # 計算範圍
+    # range_value = max_value - min_value
+
+    # print(f'數據集中的最大值: {max_value}')
+    # print(f'數據集中的最小值: {min_value}')
+    # print(f'最大值與最小值之間的差（範圍）: {range_value}')
+    # endregion
+
+    # region 四分位距
+    # import numpy as np
+    # # 數據集
+    # data = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+    # # 計算第 25 個百分位數
+    # percentile_25 = np.percentile(data, 25)
+    # # 計算第 50 個百分位數（中位數）
+    # percentile_50 = np.percentile(data, 50)
+    # # 計算第 75 個百分位數
+    # percentile_75 = np.percentile(data, 75)
+    # print(f'第 25 個百分位數: {percentile_25}')
+    # print(f'第 50 個百分位數（中位數）: {percentile_50}')
+    # print(f'第 75 個百分位數: {percentile_75}')
+    # endregion
+
+    # region DataFrame shift
+    # data = {
+    #     'A': [1, 2, 3, 4, 5],
+    #     'B': [5, 4, 3, 2, 1]
+    # }
+    # df = pd.DataFrame(data)
+    # df['A_shift'] = df['A'].shift(1)
+    # AlastIdx = df['A'].size - 1
+    # testRow = {}
+    # for col in df.columns:
+    #     if col == 'A_shift':
+    #         testRow[col] = df['A'].iloc[AlastIdx]
+    #     else:
+    #         testRow[col] = None
+    # df = df.append(testRow, ignore_index=True)
+    # print(df)
+    # endregion
+
+    # region DataFrame roll
+    # data = {
+    #     'A': [1, 2, 3, 4, 5],
+    #     'B': [5, 4, 3, 2, 1]
+    # }
+    # df = pd.DataFrame(data)
+    # dfTrans = df.T
+    # print(dfTrans)
+    # endregion
+
+    # region df group count
+    # data = {
+    #     'A': [1, 2, 3, 4, 5, 1, 2, 3, 4, 5],
+    #     'B': [5, 4, 3, 2, 1, 5, 4, 3, 2, 1],
+    #     'C': ['foo', 'bar', 'foo', 'bar', 'foo', 'bar', 'foo', 'bar', 'foo', 'bar']
+    # }
+    # df = pd.DataFrame(data)
+    # grouped_count = df.groupby(['A', 'B']).size().reset_index(name='count')
+    # print("\nGrouped DataFrame (count):")
+    # print(grouped_count)
+    # endregion
+
+    # region 訓練、測試集
+    import numpy as np
+    from sklearn.model_selection import train_test_split
+
+    # 生成示例數據
+    data = np.array([
+        [1, 1.5],
+        [2, 1.7],
+        [3, 3.2],
+        [4, 4.5],
+        [5, 5.0],
+        [6, 6.1],
+        [7, 7.4],
+        [8, 8.2],
+        [9, 9.0],
+        [10, 10.1]
+    ])
+
+    # 分割數據集
+    train_data, test_data = train_test_split(
+        data, test_size=0.2, random_state=32)
+
+    print('訓練集:', train_data)
+    print('測試集:', test_data)
+    # endregion
+
     # region calcu workflow
 
-    dbContext = db.MSSQLDbContext({'server': 'wpdb2.hihosting.hinet.net', 'user': 'p89880749_p89880749',
-                                   'password': 'Jonny1070607!@#$%', 'database': 'p89880749_test'})
+    # dbContext = db.MSSQLDbContext({'server': 'wpdb2.hihosting.hinet.net', 'user': 'p89880749_p89880749',
+    #                                'password': 'Jonny1070607!@#$%', 'database': 'p89880749_test'})
 
-    rows = dbContext.select(
-        'select drawNumberSize,lotteryDate from Daily539 ORDER BY period')
-    inputs = list(map(lambda row: row['drawNumberSize'].split(','), rows))
+    # rows = dbContext.select(
+    #     'select drawNumberSize,lotteryDate from Daily539 ORDER BY period')
+    # inputs = list(map(lambda row: row['drawNumberSize'].split(','), rows))
 
-    print('')
+    # print('')
 
     # region db來源,未來抽換先用hard code,先用30期模擬
 
@@ -981,188 +1117,184 @@ if __name__ == '__main__':
     # inputs = results[firstAna:endAna]
     # endregion
 
-    deferBallInfos = [
-        BallGroup('小一', 0), BallGroup('小二', 0), BallGroup(
-            '小三', 0), BallGroup('小四', 0), BallGroup('小五', 0),
-        BallGroup('大一', 0), BallGroup('大二', 0), BallGroup(
-            '大三', 0), BallGroup('大四', 0), BallGroup('大五', 0),
-        BallGroup('小六', 0), BallGroup('小七', 0), BallGroup(
-            '小八', 0), BallGroup('小九', 0),
-        BallGroup('大六', 0), BallGroup('大七', 0), BallGroup(
-            '大八', 0), BallGroup('大九', 0),
-        BallGroup('零', 0),
-    ]
+    #     deferBallInfos = [
+    #         BallGroup('小一', 0), BallGroup('小二', 0), BallGroup(
+    #             '小三', 0), BallGroup('小四', 0), BallGroup('小五', 0),
+    #         BallGroup('大一', 0), BallGroup('大二', 0), BallGroup(
+    #             '大三', 0), BallGroup('大四', 0), BallGroup('大五', 0),
+    #         BallGroup('小六', 0), BallGroup('小七', 0), BallGroup(
+    #             '小八', 0), BallGroup('小九', 0),
+    #         BallGroup('大六', 0), BallGroup('大七', 0), BallGroup(
+    #             '大八', 0), BallGroup('大九', 0),
+    #         BallGroup('零', 0),
+    #     ]
 
-    convertMark = ConvertMark()
-    exportFile = ExportFile()
-    deferCalcu = DeferCalcu(
-        exportFile=exportFile, deferBallInfos=deferBallInfos, convert=convertMark, isToCsv=True)
-    dfDefer = deferCalcu.calcu(inputs)
+    #     convertMark = ConvertMark()
+    #     exportFile = ExportFile()
+    #     deferCalcu = DeferCalcu(
+    #         exportFile=exportFile, deferBallInfos=deferBallInfos, convert=convertMark, isToCsv=True)
+    #     dfDefer = deferCalcu.calcu(inputs)
 
-    timesBallInfos = [BallGroup('小一', 0), BallGroup('小二', 0), BallGroup(
-        '小三', 0), BallGroup('小四', 0), BallGroup('小五', 0),
-        BallGroup('大一', 0), BallGroup('大二', 0), BallGroup(
-        '大三', 0), BallGroup('大四', 0), BallGroup('大五', 0),
-        BallGroup('小六', 0), BallGroup('小七', 0), BallGroup(
-        '小八', 0), BallGroup('小九', 0),
-        BallGroup('大六', 0), BallGroup('大七', 0), BallGroup(
-        '大八', 0), BallGroup('大九', 0),
-        BallGroup('零', 0),
-    ]
+    #     timesBallInfos = [BallGroup('小一', 0), BallGroup('小二', 0), BallGroup(
+    #         '小三', 0), BallGroup('小四', 0), BallGroup('小五', 0),
+    #         BallGroup('大一', 0), BallGroup('大二', 0), BallGroup(
+    #         '大三', 0), BallGroup('大四', 0), BallGroup('大五', 0),
+    #         BallGroup('小六', 0), BallGroup('小七', 0), BallGroup(
+    #         '小八', 0), BallGroup('小九', 0),
+    #         BallGroup('大六', 0), BallGroup('大七', 0), BallGroup(
+    #         '大八', 0), BallGroup('大九', 0),
+    #         BallGroup('零', 0),
+    #     ]
 
-    timesCalcu = TimesCalcu(
-        exportFile=exportFile, timesBallInfos=timesBallInfos, convert=convertMark, isToCsv=True)
-    dfTimes = timesCalcu.calcu(inputs)
+    #     timesCalcu = TimesCalcu(
+    #         exportFile=exportFile, timesBallInfos=timesBallInfos, convert=convertMark, isToCsv=True)
+    #     dfTimes = timesCalcu.calcu(inputs)
 
-    relationTerm = RelationTerm(inputs=inputs)
-    # stategy = [StrategyPrize.Relation_Five_Compose_5, StrategyPrize.Relation_Five_Compose_10, StrategyPrize.Relation_Five_Compose_12,
-    #            StrategyPrize.Relation_Five_Compose_15, StrategyPrize.Relation_Five_Compose_20, StrategyPrize.Relation_Five_Compose_25]
-    stategy = [StrategyPrize.Relation_Five_Compose_12]
-    for stat in stategy:
-        fiveThreeNineSign = FiveThreeNineSign(
-            exportFile, convertMark, relationTerm, True)
-        fiveThreeNineSign.strategy = stat
-        # if stat == StrategyPrize.Relation_Five_Compose_5:
-        #     fiveThreeNineSign.frtTake = 5
-        # if stat == StrategyPrize.Relation_Five_Compose_10:
-        #     fiveThreeNineSign.frtTake = 10
+    #     relationTerm = RelationTerm(inputs=inputs)
+    #     # stategy = [StrategyPrize.Relation_Five_Compose_5, StrategyPrize.Relation_Five_Compose_10, StrategyPrize.Relation_Five_Compose_12,
+    #     #            StrategyPrize.Relation_Five_Compose_15, StrategyPrize.Relation_Five_Compose_20, StrategyPrize.Relation_Five_Compose_25]
+    #     stategy = [StrategyPrize.Relation_Five_Compose_12]
+    #     for stat in stategy:
+    #         fiveThreeNineSign = FiveThreeNineSign(
+    #             exportFile, convertMark, relationTerm, True)
+    #         fiveThreeNineSign.strategy = stat
+    #         # if stat == StrategyPrize.Relation_Five_Compose_5:
+    #         #     fiveThreeNineSign.frtTake = 5
+    #         # if stat == StrategyPrize.Relation_Five_Compose_10:
+    #         #     fiveThreeNineSign.frtTake = 10
 
-        if stat == StrategyPrize.Relation_Five_Compose_12:
-            fiveThreeNineSign.frtTake = 12
-            fiveThreeNineSign.min_support = 0.15
-            fiveThreeNineSign.min_threshold = 0.6
-            fiveThreeNineSign.hot_limit = 1
-        # if stat == StrategyPrize.Relation_Five_Compose_15:
-        #     fiveThreeNineSign.frtTake = 15
-        # if stat == StrategyPrize.Relation_Five_Compose_20:
-        #     fiveThreeNineSign.frtTake = 20
-        # if stat == StrategyPrize.Relation_Five_Compose_25:
-        #     fiveThreeNineSign.frtTake = 25
-        dfSign = fiveThreeNineSign.sign(dfDefer, dfTimes)
+    #         if stat == StrategyPrize.Relation_Five_Compose_12:
+    #             fiveThreeNineSign.frtTake = 12
+    #             fiveThreeNineSign.min_support = 0.15
+    #             fiveThreeNineSign.min_threshold = 0.6
+    #             fiveThreeNineSign.hot_limit = 1
+    #         # if stat == StrategyPrize.Relation_Five_Compose_15:
+    #         #     fiveThreeNineSign.frtTake = 15
+    #         # if stat == StrategyPrize.Relation_Five_Compose_20:
+    #         #     fiveThreeNineSign.frtTake = 20
+    #         # if stat == StrategyPrize.Relation_Five_Compose_25:
+    #         #     fiveThreeNineSign.frtTake = 25
+    #         dfSign = fiveThreeNineSign.sign(dfDefer, dfTimes)
 
-        fiveThreeNinePrize = FiveThreeNinePrize(exportFile, convertMark, True)
-        dfPrize = fiveThreeNinePrize.prize(inputs, dfSign)
+    #         fiveThreeNinePrize = FiveThreeNinePrize(exportFile, convertMark, True)
+    #         dfPrize = fiveThreeNinePrize.prize(inputs, dfSign)
 
-        # region 統計各區間利潤
-        # 計算變異數占比
-        # 計算離群值占比
-        # 各占比所獲得利潤
+    #         # region 統計各區間利潤
+    #         # 計算變異數占比
+    #         # 計算離群值占比
+    #         # 各占比所獲得利潤
 
-        colOutlier = dfPrize.groupby('outlierQty').groups.keys()
-        countOutlier = dfPrize.groupby('outlierQty')['outlierQty'].count()
+    #         colOutlier = dfPrize.groupby('outlierQty').groups.keys()
+    #         countOutlier = dfPrize.groupby('outlierQty')['outlierQty'].count()
 
-        profitOutlier = dfPrize.groupby('outlierQty')[
-            'actualProfit'].sum().tolist()
-        dfOutlier = pd.DataFrame(
-            [profitOutlier, countOutlier], columns=colOutlier, index=['profit', 'num'])
+    #         profitOutlier = dfPrize.groupby('outlierQty')[
+    #             'actualProfit'].sum().tolist()
+    #         dfOutlier = pd.DataFrame(
+    #             [profitOutlier, countOutlier], columns=colOutlier, index=['profit', 'num'])
 
-        # var 4分位距
-        colVar = dfPrize.groupby('varQ').groups.keys()
-        profitVar = dfPrize.groupby('varQ')[
-            'actualProfit'].sum().tolist()
-        dfVar = pd.DataFrame([profitVar], columns=colVar)
-        # arr = sorted(dfPrize[('defer', 'var')].tolist(), key=lambda e: e)
-        # npArr = np.array(arr)
-        # max = np.max(npArr)
-        # mean = np.mean(npArr)
-        # Q1 = np.quantile(npArr, 0.25) #7.27
-        # Q2 = np.quantile(npArr, 0.5) #10.48
-        # Q3 = np.quantile(npArr, 0.75)#13.65
-        print('')
+    #         # var 4分位距
+    #         colVar = dfPrize.groupby('varQ').groups.keys()
+    #         profitVar = dfPrize.groupby('varQ')[
+    #             'actualProfit'].sum().tolist()
+    #         dfVar = pd.DataFrame([profitVar], columns=colVar)
+    #         # arr = sorted(dfPrize[('defer', 'var')].tolist(), key=lambda e: e)
+    #         # npArr = np.array(arr)
+    #         # max = np.max(npArr)
+    #         # mean = np.mean(npArr)
+    #         # Q1 = np.quantile(npArr, 0.25) #7.27
+    #         # Q2 = np.quantile(npArr, 0.5) #10.48
+    #         # Q3 = np.quantile(npArr, 0.75)#13.65
+    #         print('')
 
-        # endregion
+    #         # endregion
 
-        # region 計算收益
-        # signTerm = dfPrize['signQty'].count()
-        signMax = dfPrize['signQty'].max()
-        signTerm = len(
-            list(filter(lambda e: e == True, dfPrize['isSign'].values)))
-        matchTerm = len(
-            list(filter(lambda e: e == True, dfPrize['isMatch'].values)))
-        # termPercent = matchTerm / signTerm
-        termPercent = 0
-        termFormatedPercent = '{:.2%}'.format(termPercent)
-        matchSumQty = dfPrize['matchQty'].sum()
-        signSumQty = dfPrize['signQty'].sum()
-        matchPercent = matchSumQty / signSumQty
-        formatedPercent = '{:.2%}'.format(matchPercent)
-        profit = 1500 * matchSumQty
-        cost = 25 * signSumQty
-        actualProfit = profit - cost
-        print(f'name:{stat.name}')
-        print(f'actualProfit:{actualProfit}')
-        print(f'profit:{profit}')
-        print(f'cost:{cost}')
-        dfProfit = pd.DataFrame(
-            {'總損益': [actualProfit], '成本': [cost], '期數命中率': [termFormatedPercent], '注數命中率': [formatedPercent]
-             })
-        # endregion
+    #         # region 計算收益
+    #         # signTerm = dfPrize['signQty'].count()
+    #         signMax = dfPrize['signQty'].max()
+    #         signTerm = len(
+    #             list(filter(lambda e: e == True, dfPrize['isSign'].values)))
+    #         matchTerm = len(
+    #             list(filter(lambda e: e == True, dfPrize['isMatch'].values)))
+    #         # termPercent = matchTerm / signTerm
+    #         termPercent = 0
+    #         termFormatedPercent = '{:.2%}'.format(termPercent)
+    #         matchSumQty = dfPrize['matchQty'].sum()
+    #         signSumQty = dfPrize['signQty'].sum()
+    #         matchPercent = matchSumQty / signSumQty
+    #         formatedPercent = '{:.2%}'.format(matchPercent)
+    #         profit = 1500 * matchSumQty
+    #         cost = 25 * signSumQty
+    #         actualProfit = profit - cost
+    #         print(f'name:{stat.name}')
+    #         print(f'actualProfit:{actualProfit}')
+    #         print(f'profit:{profit}')
+    #         print(f'cost:{cost}')
+    #         dfProfit = pd.DataFrame(
+    #             {'總損益': [actualProfit], '成本': [cost], '期數命中率': [termFormatedPercent], '注數命中率': [formatedPercent]
+    #              })
+    #         # endregion
 
-        resultFile = 'C:/Programs/bingo/bingo_scrapy/539_calcu/excel/merged_{}.xlsx'.format(
-            stat.name)
-        if os.path.exists(resultFile):
-            os.remove(resultFile)
-        with pd.ExcelWriter(resultFile, engine='openpyxl') as writer:
-            # Write each DataFrame to a separate sheet
-            dfDefer.to_excel(writer, sheet_name='defer', index=False)
-            dfTimes.to_excel(writer, sheet_name='times', index=False)
-            dfSign.to_excel(writer, sheet_name='sign', index=True)
-            dfPrize.to_excel(writer, sheet_name='prize', index=False)
-            dfProfit.to_excel(writer, sheet_name='profit', index=False)
-            dfOutlier.to_excel(writer, sheet_name='outlier', index=True)
-            dfVar.to_excel(writer, sheet_name='var', index=False)
+    #         resultFile = 'C:/Programs/bingo/bingo_scrapy/539_calcu/excel/merged_{}.xlsx'.format(
+    #             stat.name)
+    #         if os.path.exists(resultFile):
+    #             os.remove(resultFile)
+    #         with pd.ExcelWriter(resultFile, engine='openpyxl') as writer:
+    #             # Write each DataFrame to a separate sheet
+    #             dfDefer.to_excel(writer, sheet_name='defer', index=False)
+    #             dfTimes.to_excel(writer, sheet_name='times', index=False)
+    #             dfSign.to_excel(writer, sheet_name='sign', index=True)
+    #             dfPrize.to_excel(writer, sheet_name='prize', index=False)
+    #             dfProfit.to_excel(writer, sheet_name='profit', index=False)
+    #             dfOutlier.to_excel(writer, sheet_name='outlier', index=True)
+    #             dfVar.to_excel(writer, sheet_name='var', index=False)
 
-    pass
-    # endregion
-
-    # region test case
-
-    # try:
-    #     suite = unittest.TestSuite()
-    #     suite.addTest(TestDeferCalcu('test_to_csv_df'))
-    #     suite.addTest(TestDeferCalcu('test_calcu_df'))
-    #     suite.addTest(TestConvertMark('test_ballToMark'))
-    #     suite.addTest(TestConvertMark('test_markToBalls'))
-    #     suite.addTest(TestFiveThreeNinePrize('test_prize'))
-    #     # suite.addTest(TestDeferCalcu('test_calcu_3mean'))
-    #     runner = unittest.TextTestRunner(verbosity=2)
-    #     runner.run(suite)
-    # except SystemExit:
     #     pass
+    #     # endregion
 
-    # endregion
+    #     # region test case
 
+    #     # try:
+    #     #     suite = unittest.TestSuite()
+    #     #     suite.addTest(TestDeferCalcu('test_to_csv_df'))
+    #     #     suite.addTest(TestDeferCalcu('test_calcu_df'))
+    #     #     suite.addTest(TestConvertMark('test_ballToMark'))
+    #     #     suite.addTest(TestConvertMark('test_markToBalls'))
+    #     #     suite.addTest(TestFiveThreeNinePrize('test_prize'))
+    #     #     # suite.addTest(TestDeferCalcu('test_calcu_3mean'))
+    #     #     runner = unittest.TextTestRunner(verbosity=2)
+    #     #     runner.run(suite)
+    #     # except SystemExit:
+    #     #     pass
 
-# 優化
-# DeferCalcu、TimesCalcu 提煉ICalcu to csv path
-# 離群值提煉class,並透過相依注入
+    #     # endregion
 
+    # # 優化
+    # # DeferCalcu、TimesCalcu 提煉ICalcu to csv path
+    # # 離群值提煉class,並透過相依注入
 
-# 策略
-# 關聯式規則是用在類似離群背景值、而不是動態
-# 研究頻率各項目如何計算
-# 確認笛卡爾乘積是否2的3次方
+    # # 策略
+    # # 關聯式規則是用在類似離群背景值、而不是動態
+    # # 研究頻率各項目如何計算
+    # # 確認笛卡爾乘積是否2的3次方
 
+    # # 關聯式規則注中二者之間關聯 (關聯並不受變異數影響,可能要加入在關聯變數內)
+    # # 冷門注重再回補次數
+    # # 目前是冷門有符合關聯才match進去
 
-# 關聯式規則注中二者之間關聯 (關聯並不受變異數影響,可能要加入在關聯變數內)
-# 冷門注重再回補次數
-# 目前是冷門有符合關聯才match進去
+    # # 修改
+    # # 變異數占比統計波動
+    # # 了解離群值占比
+    # # 無離群值中獎獲利
 
+    # # 計算變異數占比
+    # # 計算離群值占比
+    # # 各占比所獲得利潤
 
-# 修改
-# 變異數占比統計波動
-# 了解離群值占比
-# 無離群值中獎獲利
+    # # 假定變異數變大會產生要補冷門求號，但關聯式規則應該要加入變異數
+    # # 並且應是透過
+    # # 個人感覺二者策略有衝突，關聯式規則應是增加而不是過濾
+    # # 動態調整萃取關聯式規則
 
-# 計算變異數占比
-# 計算離群值占比
-# 各占比所獲得利潤
-
-# 假定變異數變大會產生要補冷門求號，但關聯式規則應該要加入變異數
-# 並且應是透過
-# 個人感覺二者策略有衝突，關聯式規則應是增加而不是過濾
-# 動態調整萃取關聯式規則
-
-# 確定規則
-# 離群值對簽注是有幫助的
-# 有多少是有過濾掉離群值
+    # # 確定規則
+    # # 離群值對簽注是有幫助的
+    # # 有多少是有過濾掉離群值

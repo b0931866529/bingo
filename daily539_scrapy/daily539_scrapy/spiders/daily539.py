@@ -23,35 +23,9 @@ class Daily539Spider(scrapy.Spider):
         # logging.info('test info log')
         super().__init__(name, **kwargs)
 
-        # # 沒超過一週用落差時間來更新
-        # # 更新當日資料
-        # # 從DB中判別是否更新到最新天數
-        # rows = self.db.select(
-        #     'Select MAX(dDate) As dDate From Bingo Group By dDate ORDER BY dDate DESC')
-        # # 若超過時間太長用前三天來更新
-        # overDate = date.today() - timedelta(days=3)
-        # dbDate = overDate if len(rows) == 0 else rows[0]['dDate']
-        # offset = (date.today() - dbDate).days
-        # if dbDate == overDate or offset > 3:
-        #     self.beforeDay = 3
-        # else:
-        #     self.beforeDay = offset
-
-        # if self.beforeDay == 0:
-        #     self.beforeDay += 1
-
-        # # pdb.set_trace()  # Set a breakpoint here
-        # for i in range(0, self.beforeDay + 1):
-        #     crawlDate = date.today() if i == 0 else date.today() - timedelta(days=i)
-        #     # pdb.set_trace()  # Set a breakpoint here
-        #     # url = f'https://api.taiwanlottery.com/TLCAPIWeB/Lottery/BingoResult?openDate={crawlDate}&pageNum=1&pageSize=10'
-        #     url = f'https://api.taiwanlottery.com/TLCAPIWeB/Lottery/Daily539Result?period&month=2024-06&pageNum=1&pageSize=50'
-        #     logging.info(url)
-        #     # pdb.set_trace()  # Set a breakpoint here
-        #     self.start_urls.append(url)
-        # pdb.set_trace()  # Set a breakpoint here
         url = 'https://api.taiwanlottery.com/TLCAPIWeB/Lottery/Daily539Result?period&month=2023-01&pageNum=1&pageSize=50'
         self.start_urls.append(url)
+
     def parse(self, response):
         data = json.loads(response.text)
         totalSize = data['content']['totalSize']
@@ -64,12 +38,7 @@ class Daily539Spider(scrapy.Spider):
             item['drawNumberSize'] = result['drawNumberSize']
             # logging.info(item)
             # pdb.set_trace()
-            yield item  
-        
+            yield item
+
         pdb.set_trace()
         print('finish scrapy')
-
-
-        
-
-   

@@ -184,6 +184,121 @@ class ConvertMark(ABC):
         pass
 
 
+class ConvertOddEvenMark(ABC):
+    """將球號分組"""
+
+    def __init__(self) -> None:
+        pass
+
+    def loadStds(self) -> list[str]:
+        deferBallInfos = [
+            BallGroup('單一', 0), BallGroup('單二', 0), BallGroup(
+                '單三', 0), BallGroup('單四', 0), BallGroup('單五', 0),
+            BallGroup('雙一', 0), BallGroup('雙二', 0), BallGroup(
+                '雙三', 0), BallGroup('雙四', 0), BallGroup('雙五', 0),
+            BallGroup('單六', 0), BallGroup('單七', 0), BallGroup(
+                '單八', 0), BallGroup('單九', 0),
+            BallGroup('雙六', 0), BallGroup('雙七', 0), BallGroup(
+                '雙八', 0), BallGroup('雙九', 0),
+            BallGroup('零', 0),
+        ]
+        return deferBallInfos
+        pass
+
+    def ballToMark(self, ball: str) -> str:
+        """
+        依照球號排序
+        """
+        if any(ball == n for n in ['31', '11']):
+            return '單一'
+        if any(ball == n for n in ['32', '12']):
+            return '單二'
+        if any(ball == n for n in ['33', '13']):
+            return '單三'
+        if any(ball == n for n in ['34', '14']):
+            return '單四'
+        if any(ball == n for n in ['35', '15']):
+            return '單五'
+
+        if any(ball == n for n in ['21', '01']):
+            return '雙一'
+        if any(ball == n for n in ['22', '02']):
+            return '雙二'
+        if any(ball == n for n in ['23', '03']):
+            return '雙三'
+        if any(ball == n for n in ['24', '04']):
+            return '雙四'
+        if any(ball == n for n in ['25', '05']):
+            return '雙五'
+
+        if any(ball == n for n in ['36', '16']):
+            return '單六'
+        if any(ball == n for n in ['37', '17']):
+            return '單七'
+        if any(ball == n for n in ['38', '18']):
+            return '單八'
+        if any(ball == n for n in ['39', '19']):
+            return '單九'
+
+        if any(ball == n for n in ['26', '06']):
+            return '雙六'
+        if any(ball == n for n in ['27', '07']):
+            return '雙七'
+        if any(ball == n for n in ['28', '08']):
+            return '雙八'
+        if any(ball == n for n in ['29', '09']):
+            return '雙九'
+
+        if any(ball == n for n in ['10', '20', '30']):
+            return '零'
+        return ''
+
+    def markToBalls(self, mark: str) -> list[str]:
+        if mark == '單一':
+            return ['31', '11']
+        if mark == '單二':
+            return ['32', '12']
+        if mark == '單三':
+            return ['33', '13']
+        if mark == '單四':
+            return ['34', '14']
+        if mark == '單五':
+            return ['35', '15']
+
+        if mark == '雙一':
+            return ['21', '01']
+        if mark == '雙二':
+            return ['22', '02']
+        if mark == '雙三':
+            return ['23', '03']
+        if mark == '雙四':
+            return ['24', '04']
+        if mark == '雙五':
+            return ['25', '05']
+
+        if mark == '單六':
+            return ['36', '16']
+        if mark == '單七':
+            return ['37', '17']
+        if mark == '單八':
+            return ['38', '18']
+        if mark == '單九':
+            return ['39', '19']
+
+        if mark == '雙六':
+            return ['26', '06']
+        if mark == '雙七':
+            return ['27', '07']
+        if mark == '雙八':
+            return ['28', '08']
+        if mark == '雙九':
+            return ['29', '09']
+
+        if mark == '零':
+            return ['10', '20', '30']
+        pass
+
+
 class DfInfo:
     """原始計算、刪除欄位"""
 
@@ -264,6 +379,11 @@ class ExportFile:
         pass
 
 
+class QLevel(Enum):
+    Q4 = 'Q4'
+    Q10 = 'Q10'
+
+
 class Quantile:
 
     @property
@@ -298,25 +418,53 @@ class Quantile:
     def cutEnd(self, value):
         self._cutEnd = value
 
-    def __init__(self) -> None:
+    def __init__(self, QLevel: QLevel) -> None:
         self._lowerLimit = 1.5
         self._upperLimit = 1.5
         self._Q1 = 0
         self._Q2 = 0
         self._Q3 = 0
+        self._Q4 = 0
+        self._Q5 = 0
+        self._Q6 = 0
+        self._Q7 = 0
+        self._Q8 = 0
+        self._Q9 = 0
+        self._Q10 = 0
+        self._QLevel = QLevel
         pass
 
-    def loadQInfo(self, row: pd.Series):
+    def _loadQInfo_Q4(self, row):
         arr = row.values.tolist()
         arrAsc = sorted(arr, key=lambda e: e)
         npArr = np.array(arrAsc)
         self._Q1 = np.quantile(npArr, 0.25)
         self._Q2 = np.quantile(npArr, 0.5)
         self._Q3 = np.quantile(npArr, 0.75)
-        print("")
+
+    def _loadQInfo_Q10(self, row):
+        arr = row.values.tolist()
+        arrAsc = sorted(arr, key=lambda e: e)
+        npArr = np.array(arrAsc)
+        self._Q1 = np.quantile(npArr, 0.1)
+        self._Q2 = np.quantile(npArr, 0.2)
+        self._Q3 = np.quantile(npArr, 0.3)
+        self._Q4 = np.quantile(npArr, 0.4)
+        self._Q5 = np.quantile(npArr, 0.5)
+        self._Q6 = np.quantile(npArr, 0.6)
+        self._Q7 = np.quantile(npArr, 0.7)
+        self._Q8 = np.quantile(npArr, 0.8)
+        self._Q9 = np.quantile(npArr, 0.9)
+
+    def loadQInfo(self, row: pd.Series):
+        if self._QLevel == QLevel.Q4:
+            self._loadQInfo_Q4(row)
+        elif self._QLevel == QLevel.Q10:
+            self._loadQInfo_Q10(row)
+            pass
         pass
 
-    def calcuLevelQs(self, row: pd.Series, colName: str) -> pd.Series:
+    def _calcuLevelQs_Q4(self, row: pd.Series, colName: str) -> pd.Series:
         """衍生欄位輸出四分位距Q1、Q2、Q3、Q4"""
 
         if np.isnan(row[colName]):
@@ -330,11 +478,46 @@ class Quantile:
             return 'Q3'
         elif row[colName] > self._Q3:
             return 'Q4'
-
         pass
 
+    def _calcuLevelQs_Q10(self, row: pd.Series, colName: str) -> pd.Series:
+        """衍生欄位輸出四分位距Q1、Q2、Q3、Q4"""
+
+        if np.isnan(row[colName]):
+            return 'Q1'
+
+        if row[colName] < self._Q1:
+            return 'Q1'
+        elif row[colName] >= self._Q1 and row[colName] < self._Q2:
+            return 'Q2'
+        elif row[colName] >= self._Q2 and row[colName] < self._Q3:
+            return 'Q3'
+        elif row[colName] >= self._Q3 and row[colName] < self._Q4:
+            return 'Q4'
+        elif row[colName] >= self._Q4 and row[colName] < self._Q5:
+            return 'Q5'
+        elif row[colName] >= self._Q5 and row[colName] < self._Q6:
+            return 'Q6'
+        elif row[colName] >= self._Q6 and row[colName] < self._Q7:
+            return 'Q7'
+        elif row[colName] >= self._Q7 and row[colName] < self._Q8:
+            return 'Q8'
+        elif row[colName] >= self._Q8 and row[colName] < self._Q9:
+            return 'Q9'
+        elif row[colName] > self._Q9:
+            return 'Q10'
+        pass
+
+    def calcuLevelQs(self, row: pd.Series, colName: str) -> pd.Series:
+        """衍生欄位輸出四分位距Q1、Q2、Q3、Q4"""
+        if self._QLevel == QLevel.Q4:
+            return self._calcuLevelQs_Q4(row, colName)
+        elif self._QLevel == QLevel.Q10:
+            return self._calcuLevelQs_Q10(row, colName)
+            pass
+
     def calcuOutlierInfo(self, df: DataFrame) -> dict:
-        """字典輸出離群值lower、upper"""
+        """字典輸出離群值lower、upper(只能計算Q4離群)"""
         arr = []
         ballDeferColumns = df.columns[self._cutFrt:self._cutEnd]
         for column in ballDeferColumns:
@@ -636,9 +819,9 @@ class DeferCalcu(ICalcu):
 
 
 class TestQuantile(unittest.TestCase):
-    def test_calcuOutlierInfo(self):
+    def test_calcuOutlierInfo_Q4(self):
         # arrange
-        quantile = Quantile()
+        quantile = Quantile(QLevel.Q4)
         quantile.cutFrt = 0
         quantile.cutEnd = 2
 
@@ -646,14 +829,14 @@ class TestQuantile(unittest.TestCase):
         df = pd.DataFrame(data)
         # act
         quantileInfo = quantile.calcuOutlierInfo(df)
-        excepted = {'lower': -1, 'upper': 7}
+        excepted = {'lower': 1, 'upper': 7}
         # assert
         self.assertDictEqual(quantileInfo, excepted)
         pass
 
-    def test_calcuLevelQs(self):
+    def test_calcuLevelQs_Q4(self):
         # arrange
-        quantile = Quantile()
+        quantile = Quantile(QLevel.Q4)
         data = {'A': [1, 2, 3], 'B': [1, 2, 3]}
         df = pd.DataFrame(data)
         # act
@@ -663,6 +846,51 @@ class TestQuantile(unittest.TestCase):
         excepted = ['Q1', 'Q3', 'Q4']
         # assert
         self.assertCountEqual(df['level'].tolist(), excepted)
+        pass
+
+    def test_calcuLevelQs_Q10(self):
+        # arrange
+        quantile = Quantile(QLevel.Q10)
+        data = {'A': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]}
+        df = pd.DataFrame(data)
+        # act
+        quantile.loadQInfo(df['A'])
+        df['level'] = df.apply(
+            lambda row: quantile.calcuLevelQs(row, 'A'), axis=1)
+        excepted = ['Q1', 'Q2', 'Q3', 'Q4',
+                    'Q5', 'Q6', 'Q7', 'Q8', 'Q9', 'Q10']
+        # assert
+        self.assertCountEqual(df['level'].tolist(), excepted)
+        pass
+
+
+class TestConvertOddEvenMark(unittest.TestCase):
+
+    def test_ballToMark(self):
+        """球號轉換"""
+        # arrange
+        convert = ConvertOddEvenMark()
+        # act
+        inputs = ['11', '32', '21', '28', '29']
+        marks = [convert.ballToMark(ele) for ele in inputs]
+        # assert
+        excepteds = ['單一', '單二', '雙一', '雙九', '雙八']
+        self.assertCountEqual(marks, excepteds)
+        pass
+
+    def test_markToBalls(self):
+        """分類轉球號"""
+        # arrange
+        convert = ConvertOddEvenMark()
+        # act
+        inputs = ['單一', '單二', '雙一', '雙九', '雙八']
+        ball2Ds = [convert.markToBalls(ele) for ele in inputs]
+        balls = list(itertools.chain.from_iterable(ball2Ds))
+        # assert
+        excepted2Ds = [['11', '31'], ['12', '32'],  [
+            '01', '21'], ['09', '29'], ['08', '28']]
+        excepteds = list(itertools.chain.from_iterable(excepted2Ds))
+        self.assertCountEqual(balls, excepteds)
         pass
 
 
@@ -752,7 +980,7 @@ class TestDeferCalcu(unittest.TestCase):
         """DataFrame balls相等結果"""
         mockExportFile = ExportFile()
         convert = BeginConvertMark()
-        quantile = Quantile()
+        quantile = Quantile(QLevel=QLevel.Q10)
         quantile.cutFrt = 0
         quantile.cutEnd = 39
         path = 'C:/Programs/bingo/bingo_scrapy/539_calcu'
@@ -778,7 +1006,7 @@ class TestDeferCalcu(unittest.TestCase):
         # arrange
         mockExportFile = ExportFile()
         convert = ConvertMark()
-        quantile = Quantile()
+        quantile = Quantile(QLevel=QLevel.Q10)
         quantile.cutFrt = 0
         quantile.cutEnd = 19
         path = 'C:/Programs/bingo/bingo_scrapy/539_calcu'
@@ -901,15 +1129,18 @@ if __name__ == '__main__':
 
     try:
         suite = unittest.TestSuite()
-        # suite.addTest(TestQuantile('test_calcuOutlierInfo'))
-        # suite.addTest(TestQuantile('test_calcuLevelQs'))
+        # suite.addTest(TestQuantile('test_calcuOutlierInfo_Q4'))
+        # suite.addTest(TestQuantile('test_calcuLevelQs_Q4'))
+        # suite.addTest(TestQuantile('test_calcuLevelQs_Q10'))
         # suite.addTest(TestConvertMark('test_ballToMark'))
         # suite.addTest(TestConvertMark('test_markToBalls'))
+        # suite.addTest(TestConvertOddEvenMark('test_ballToMark'))
+        # suite.addTest(TestConvertOddEvenMark('test_markToBalls'))
 
         # suite.addTest(TestTimesCalcu('test_calcu_ball_df'))
         # suite.addTest(TestTimesCalcu('test_calcu_mark_df'))
-        suite.addTest(TestDeferCalcu('test_calcu_mark_df'))
-        suite.addTest(TestDeferCalcu('test_calcu_ball_df'))
+        # suite.addTest(TestDeferCalcu('test_calcu_mark_df'))
+        # suite.addTest(TestDeferCalcu('test_calcu_ball_df'))
 
         # suite.addTest(TestContinueCalcu('test_calcu_ball_df'))
         # suite.addTest(TestContinueCalcu('test_calcu_mark_df'))

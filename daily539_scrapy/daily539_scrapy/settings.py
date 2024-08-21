@@ -19,6 +19,8 @@ END_DAY = '13'
 LOG_FILE = 'scrapy.log'
 LOG_LEVEL = 'INFO'
 
+CRAWL_DATE = []
+
 # SPIDER_MIDDLEWARES = {
 #     'bingo_scrapy.middlewares.TestScrapySpiderMiddleware': 100,
 # }
@@ -77,7 +79,7 @@ ITEM_PIPELINES = {
     'daily539_scrapy.pipelines.WashPipeline': 100,
     'daily539_scrapy.pipelines.DBPipeline': 200,
     'daily539_scrapy.pipelines.CsvPipeline': 300,
-    
+
     # 'daily539_scrapy.pipelines.Daily539Pipeline': 300,
 
 }

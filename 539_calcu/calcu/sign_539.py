@@ -4,7 +4,7 @@ from typing import List
 import numpy as np
 import pandas as pd
 from pandas import DataFrame, Series
-from calcu import ExportFile, DeferCalcu, TimesCalcu, ConvertMark, Quantile, BeginConvertMark, DfInfo
+from calcu import ExportFile, DeferCalcu, TimesCalcu, ConvertMark, Quantile, BeginConvertMark, DfInfo, QLevel, ConvertOddEvenMark
 import db
 from match import FiveThreeNineMatch, MatchInfo
 from prize_539 import FiveThreeNinePrize
@@ -44,7 +44,7 @@ class FiveThreeNineSign:
     def take(self, value):
         self._take = value
 
-    def __init__(self, exportFile: ExportFile, stateExclude: StateExclude, isToCsv=False, path=None, filename=None) -> None:
+    def __init__(self, exportFile: ExportFile, stateExclude: StateExclude, fiveThreeNineMatch: FiveThreeNineMatch, isToCsv=False, path=None, filename=None) -> None:
         self._exportFile = exportFile
         self._isToCsv = isToCsv
         self._hot_limit = 13
@@ -56,6 +56,7 @@ class FiveThreeNineSign:
         self._filename = filename
         self._includeColumns = []
         self._stateExclude = stateExclude
+        self._fiveThreeNineMatch = fiveThreeNineMatch
         pass
 
     def _getState(self, row: pd.Series):
@@ -113,6 +114,26 @@ class FiveThreeNineSign:
                 results.append(ele)
         return results[0:self._take]
 
+    def _outlierMatch(self, row: pd.Series, skipTimesKey: str):
+        sign2Ds = row[f'{skipTimesKey}_numOutliers'].tolist()[0]
+        if sign2Ds == None or len(sign2Ds) == 0:
+            return MatchInfo()
+        inputs = row[('times', 'num')]
+        matchInfo = self._fiveThreeNineMatch.match(inputs, sign2Ds)
+        return matchInfo
+
+    def _missQty(self, row: pd.Series, skipTimesKey: str):
+        """離群值閃掉未命中數量"""
+        matchInfo = self._outlierMatch(row, skipTimesKey)
+        return matchInfo.signQty - matchInfo.matchQty
+        pass
+
+    def _notMissQty(self, row: pd.Series, skipTimesKey: str):
+        """離群值無閃掉命中數量"""
+        matchInfo = self._outlierMatch(row, skipTimesKey)
+        return matchInfo.matchQty
+        pass
+
     def sign(self, dfs: List[DataFrame], keys: List[str]) -> DataFrame:
         """拖期離散過濾多組,dfTimes保持一組在結尾"""
         dfSign = pd.concat(dfs, axis=1, keys=keys)
@@ -136,6 +157,13 @@ class FiveThreeNineSign:
                 skipTimesKey, 'varQ')].shift(1)
             dfSign[f'{skipTimesKey}_numOutliers'] = dfSign[(
                 skipTimesKey, 'numOutliers')].shift(1)
+            dfSign[f'{skipTimesKey}_numOutliers_missQty'] = dfSign.apply(
+                lambda row: self._missQty(row, skipTimesKey), axis=1)
+            dfSign[f'{skipTimesKey}_numOutliers_notMissQty'] = dfSign.apply(
+                lambda row: self._notMissQty(row, skipTimesKey), axis=1)
+        # 計算離群閃避數量
+        # 計算離群未閃避數量
+        # 補充 閃避和未閃避衝突數量
 
         # loop會有多個拖期
 
@@ -184,14 +212,24 @@ if __name__ == '__main__':
     limits = [1.5]
     for limit in limits:
         exportFile = ExportFile()
-        convertMark = ConvertMark()
-        quantile = Quantile()
+        quantile = Quantile(QLevel=QLevel.Q10)
         quantile.cutFrt = 0
         quantile.cutEnd = 19
         quantile.upperLimit = limit
-        deferMarkCalcu = DeferCalcu(exportFile, convertMark, quantile)
-        deferMarkCalcu.includeColumns = ['numOutliers', 'varQ']
-        dfDeferMarkInfo = deferMarkCalcu.calcu(inputs)
+        # region 小一group
+        convertMark = ConvertMark()
+        deferSmallMarkCalcu = DeferCalcu(exportFile, convertMark, quantile)
+        deferSmallMarkCalcu.includeColumns = ['numOutliers', 'varQ']
+        dfDeferSmallMarkInfo = deferSmallMarkCalcu.calcu(inputs)
+        # endregion
+
+        # region 單一group
+        convertOddEvenMark = ConvertOddEvenMark()
+        deferOddMarkCalcu = DeferCalcu(
+            exportFile, convertOddEvenMark, quantile)
+        deferOddMarkCalcu.includeColumns = ['numOutliers', 'varQ']
+        dfDeferOddMarkInfo = deferOddMarkCalcu.calcu(inputs)
+        # endregion
 
         quantile.cutFrt = 0
         quantile.cutEnd = 39
@@ -206,20 +244,21 @@ if __name__ == '__main__':
         timesCalcu.includeColumns = ['num', 'asc']
         dfTimesInfo = timesCalcu.calcu(inputs)
         # endregion
-        keys = ['deferMark', 'deferBall', 'times']
-        dfs = [dfDeferMarkInfo.dfDrop,
+
+        keys = ['deferSmallMark', 'deferOddMark', 'deferBall', 'times']
+        dfs = [dfDeferSmallMarkInfo.dfDrop, dfDeferOddMarkInfo.dfDrop,
                dfDeferBallInfo.dfDrop, dfTimesInfo.dfDrop]
 
         """設定要排除條件"""
         def excludeState(row: pd.Series):
             if row['index'].tolist()[0] < 10:
                 return True
-            if row[('deferMark', 'varQ')] != 'Q2':
-                return True
-            if row[('deferBall', 'varQ')] != 'Q2':
-                return True
-            if len(row[('deferBall', 'varQ')]) != 'Q2':
-                return True
+            # if row[('deferMark', 'varQ')] != 'Q2':
+            #     return True
+            # if row[('deferBall', 'varQ')] != 'Q2':
+            #     return True
+            # if len(row[('deferBall', 'varQ')]) != 'Q2':
+            #     return True
             return False
 
         for take in range(8, 9):
@@ -227,23 +266,34 @@ if __name__ == '__main__':
             filenameSign = f'sign{take}_{limit}.xlsx'
 
             stateExclude = StateExclude(excludeState)
-
+            fiveThreeNineMatch = FiveThreeNineMatch()
             fiveThreeNineSign = FiveThreeNineSign(
-                exportFile, stateExclude, True, pathSign, filenameSign)
+                exportFile, stateExclude, fiveThreeNineMatch, True, pathSign, filenameSign)
             fiveThreeNineSign.take = take
             fiveThreeNineSign._frtSkip = 50
-            groupKeys = ['varQ', 'numOutliers']
+            groupKeys = ['varQ', 'numOutliers',
+                         'numOutliers_missQty', 'numOutliers_notMissQty']
             varQIncludeColumns = []
             numOutliersIncludeColumns = []
+            numOutliersMissQtyIncludeColumns = []
+            numOutliersNotMissQtyIncludeColumns = []
 
             for key in keys[:-1]:
                 varQIncludeColumns.append((f'{key}_varQ', ''))
                 numOutliersIncludeColumns.append((f'{key}_numOutliers', ''))
+                numOutliersMissQtyIncludeColumns.append(
+                    (f'{key}_numOutliers_missQty', ''))
+                numOutliersNotMissQtyIncludeColumns.append(
+                    (f'{key}_numOutliers_notMissQty', ''))
 
             fiveThreeNineSign.includeColumns = [
                 ('times', 'num'), ('times', 'asc'), ('signBall2Ds', '')]
             fiveThreeNineSign.includeColumns.extend(varQIncludeColumns)
             fiveThreeNineSign.includeColumns.extend(numOutliersIncludeColumns)
+            fiveThreeNineSign.includeColumns.extend(
+                numOutliersMissQtyIncludeColumns)
+            fiveThreeNineSign.includeColumns.extend(
+                numOutliersNotMissQtyIncludeColumns)
             dfSignInfo = fiveThreeNineSign.sign(dfs, keys)
 
             pathPrize = 'C:/Programs/bingo/bingo_scrapy/539_calcu'
