@@ -1,6 +1,10 @@
 from typing import List
 import unittest
 from unittest.mock import Mock
+import sys
+sys.path.append('C:/Programs/bingo/bingo_scrapy')
+
+print(sys.path)
 
 
 class MatchInfo:
@@ -53,12 +57,13 @@ class FiveThreeNineMatch:
         pass
 
     def match(self, inputs: List[str], sign2Ds: List[List[str]]) -> MatchInfo:
+        """命中2球含以上就算成功"""
         matchInfo = MatchInfo()
         if len(sign2Ds) == 0:
             return matchInfo
         matchInfo.signQty = len(sign2Ds)
         for sign in sign2Ds:
-            if len(set(inputs + sign)) == 5:
+            if len(set(inputs + sign)) <= 8:
                 matchInfo.matchQty += 1
         matchInfo.profit = (self._prize * matchInfo.matchQty) - \
             (self._cost * matchInfo.signQty)
