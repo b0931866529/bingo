@@ -17,48 +17,50 @@ import os
 from datetime import date, datetime, timedelta
 import logging
 
+
 class DBPipeline:
 
     def open_spider(self, spider):
-        pdb.set_trace()
+        # pdb.set_trace()
         print('DBPipeline open_spider')
-        
-    def close_spider(self, spider): 
-       pdb.set_trace()
-       print('DBPipeline close_spider')
-       
+
+    def close_spider(self, spider):
+        #    pdb.set_trace()
+        print('DBPipeline close_spider')
 
     def process_item(self, item, spider):
         return item
-    
+
+
 class CsvPipeline:
 
     def __init__(self):
         self.file = open('daily539.csv', 'wb')
         self.exporter = CsvItemExporter(self.file, encoding='big5')
         self.exporter.start_exporting()
-        pdb.set_trace()
+        # pdb.set_trace()
         print('CsvPipeline init')
 
     def process_item(self, item, spider):
         self.exporter.export_item(item)
         return item
-    
+
     def close_spider(self, spider):
         self.exporter.finish_exporting()
         self.file.close()
-        pdb.set_trace()
+        # pdb.set_trace()
         print('CsvPipeline close_spider')
-        
+
+
 class WashPipeline:
 
     def process_item(self, item, spider):
 
-        item['drawNumberSize'] = '1'
-        
+        # item['drawNumberSize'] = '1'
+
         return item
-    
-    
+
+
 class Daily539Pipeline:
 
     def __init__(self):
@@ -123,7 +125,7 @@ class Daily539Pipeline:
         #                 result = value.replace("[","").replace("]","")
         #                 # pdb.set_trace()  # Set a breakpoint here
         #                 newObj[key] = result
-                        
+
         #             else:
         #                 newObj[key] = value
         #         newObj['createDate'] = 'CURRENT_TIMESTAMP'
@@ -154,7 +156,5 @@ class Daily539Pipeline:
 
         pdb.set_trace()
         print('pipelines process_item')
-
-
 
         return item

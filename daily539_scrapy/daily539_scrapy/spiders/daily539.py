@@ -1,7 +1,6 @@
 from ..items import Daily539Item
-from ..settings import OPEN_DATE
-from ..settings import END_DAY
-from ..db import SQL
+# from ..settings import OPEN_DATE
+# from ..settings import END_DAY
 import scrapy
 import pdb
 import json
@@ -16,8 +15,6 @@ class Daily539Spider(scrapy.Spider):
     start_urls = []
     # Flag判別是否更新到最新天數
     beforeDay = 0
-    db = SQL({'server': 'wpdb2.hihosting.hinet.net', 'user': 'p89880749_p89880749',
-              'password': 'Jonny1070607!@#$%', 'database': 'p89880749_test'})
 
     def __init__(self, name=None, **kwargs):
         # logging.info('test info log')
@@ -40,5 +37,5 @@ class Daily539Spider(scrapy.Spider):
             # pdb.set_trace()
             yield item
 
-        pdb.set_trace()
-        print('finish scrapy')
+        # pdb.set_trace()
+        print('539 parse')
