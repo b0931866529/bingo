@@ -1,10 +1,13 @@
+from enum import Enum
 from typing import List
 import unittest
 from unittest.mock import Mock
 import sys
-sys.path.append('C:/Programs/bingo/bingo_scrapy')
 
-print(sys.path)
+
+class StrategyMatch(Enum):
+    TWO = 1
+    FIVE = 5
 
 
 class MatchInfo:
@@ -51,9 +54,16 @@ class MatchInfo:
 
 
 class FiveThreeNineMatch:
-    def __init__(self) -> None:
+    def __init__(self, strategyMatch=StrategyMatch.TWO) -> None:
         self._cost = 25
         self._prize = 1500
+        self._strategyMatch = strategyMatch
+        pass
+
+    def _two(self, inputs: List[str], sign: List[str]) -> bool:
+        if sign is not None and inputs is not None and len(set(inputs + sign)) == 5:
+            return True
+        return False
         pass
 
     def match(self, inputs: List[str], sign2Ds: List[List[str]]) -> MatchInfo:
@@ -63,7 +73,7 @@ class FiveThreeNineMatch:
             return matchInfo
         matchInfo.signQty = len(sign2Ds)
         for sign in sign2Ds:
-            if len(set(inputs + sign)) <= 8:
+            if self._strategyMatch == StrategyMatch.TWO and self._two(inputs, sign):
                 matchInfo.matchQty += 1
         matchInfo.profit = (self._prize * matchInfo.matchQty) - \
             (self._cost * matchInfo.signQty)
@@ -72,13 +82,15 @@ class FiveThreeNineMatch:
 
 
 class TestFiveThreeNineMatch(unittest.TestCase):
-    def test_match(self):
+    # error 二合調整
+    def test_match_by_two(self):
         # arrange
         fiveThreeNineMatch = FiveThreeNineMatch()
         # act
+
         input = ['01', '02', '03', '04', '05']
-        sign2Ds = [['01', '02', '03', '04', '05'], ['01', '12', '13', '14', '15'], [
-            '01', '02', '13', '14', '15'], ['11', '12', '13', '14', '15']]
+        sign2Ds = [['01', '02'], ['01', '12'], [
+            '01', '05'], ['14', '15']]
         matchInfo = fiveThreeNineMatch.match(input, sign2Ds)
         matchInfoExcept = MatchInfo()
         matchInfoExcept.signQty = 4
@@ -93,7 +105,7 @@ if __name__ == '__main__':
 
     try:
         suite = unittest.TestSuite()
-        suite.addTest(TestFiveThreeNineMatch('test_match'))
+        suite.addTest(TestFiveThreeNineMatch('test_match_by_two'))
         runner = unittest.TextTestRunner(verbosity=2)
         runner.run(suite)
     except SystemExit:

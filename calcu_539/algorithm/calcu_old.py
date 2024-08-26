@@ -17,6 +17,10 @@ from abc import ABC, abstractmethod
 import db
 from enum import Enum
 import math
+from calcu_539.algorithm.mark_old import BeginConvertMark, ConvertMark, ConvertOddEvenMark
+from calcu_539.static.quantile_old import Quantile, QLevel
+from calcu_539.excel.exportFile import ExportFile
+from db.db import MSSQLDbContext
 
 
 class DfInfo:
@@ -44,196 +48,6 @@ class DfInfo:
         self._dfDrop = value
 
 
-class ExportFile:
-    """注入ICalcu子類別結果產出DataFrame To Csv"""
-
-    def __init__(self) -> None:
-        pass
-
-    def exportCsv(self, df: DataFrame, path: str, filename: str) -> None:
-        file = os.path.join(path, filename)
-        # 檢查文件是否存在
-        if os.path.exists(file):
-            os.remove(file)  # 刪除已存在的文件
-        df.to_csv(file, index=False, encoding='utf-8-sig')
-        pass
-
-    def exportExcel(self, dfs: List[DataFrame], sheets: List[str], path: str, filename: str) -> None:
-        file = f'{path}/{filename}'
-        # 檢查文件是否存在
-        if os.path.exists(file):
-            os.remove(file)  # 刪除已存在的文件
-
-        zipped = list(zip(dfs, sheets))
-        with pd.ExcelWriter(file, engine='openpyxl') as writer:
-            for df, sheet in zipped:
-                # Write each DataFrame to a separate sheet
-                df.to_excel(writer, sheet_name=sheet, index=True)
-        pass
-
-
-class QLevel(Enum):
-    Q4 = 'Q4'
-    Q10 = 'Q10'
-
-
-class Quantile:
-
-    @property
-    def lowerLimit(self):
-        return self._lowerLimit
-
-    @lowerLimit.setter
-    def lowerLimit(self, value):
-        self._lowerLimit = value
-
-    @property
-    def upperLimit(self):
-        return self._upperLimit
-
-    @upperLimit.setter
-    def upperLimit(self, value):
-        self._upperLimit = value
-
-    @property
-    def cutFrt(self):
-        return self._cutFrt
-
-    @cutFrt.setter
-    def cutFrt(self, value):
-        self._cutFrt = value
-
-    @property
-    def cutEnd(self):
-        return self._cutEnd
-
-    @cutEnd.setter
-    def cutEnd(self, value):
-        self._cutEnd = value
-
-    def __init__(self, QLevel: QLevel) -> None:
-        self._lowerLimit = 1.5
-        self._upperLimit = 1.5
-        self._Q1 = 0
-        self._Q2 = 0
-        self._Q3 = 0
-        self._Q4 = 0
-        self._Q5 = 0
-        self._Q6 = 0
-        self._Q7 = 0
-        self._Q8 = 0
-        self._Q9 = 0
-        self._Q10 = 0
-        self._QLevel = QLevel
-        pass
-
-    def _loadQInfo_Q4(self, row):
-        arr = row.values.tolist()
-        arrAsc = sorted(arr, key=lambda e: e)
-        npArr = np.array(arrAsc)
-        self._Q1 = np.quantile(npArr, 0.25)
-        self._Q2 = np.quantile(npArr, 0.5)
-        self._Q3 = np.quantile(npArr, 0.75)
-
-    def _loadQInfo_Q10(self, row):
-        arr = row.values.tolist()
-        arrAsc = sorted(arr, key=lambda e: e)
-        npArr = np.array(arrAsc)
-        self._Q1 = np.quantile(npArr, 0.1)
-        self._Q2 = np.quantile(npArr, 0.2)
-        self._Q3 = np.quantile(npArr, 0.3)
-        self._Q4 = np.quantile(npArr, 0.4)
-        self._Q5 = np.quantile(npArr, 0.5)
-        self._Q6 = np.quantile(npArr, 0.6)
-        self._Q7 = np.quantile(npArr, 0.7)
-        self._Q8 = np.quantile(npArr, 0.8)
-        self._Q9 = np.quantile(npArr, 0.9)
-
-    def loadQInfo(self, row: pd.Series):
-        if self._QLevel == QLevel.Q4:
-            self._loadQInfo_Q4(row)
-        elif self._QLevel == QLevel.Q10:
-            self._loadQInfo_Q10(row)
-            pass
-        pass
-
-    def _calcuLevelQs_Q4(self, row: pd.Series, colName: str) -> pd.Series:
-        """衍生欄位輸出四分位距Q1、Q2、Q3、Q4"""
-
-        if np.isnan(row[colName]):
-            return 'Q1'
-
-        if row[colName] < self._Q1:
-            return 'Q1'
-        elif row[colName] >= self._Q1 and row[colName] < self._Q2:
-            return 'Q2'
-        elif row[colName] >= self._Q2 and row[colName] < self._Q3:
-            return 'Q3'
-        elif row[colName] > self._Q3:
-            return 'Q4'
-        pass
-
-    def _calcuLevelQs_Q10(self, row: pd.Series, colName: str) -> pd.Series:
-        """衍生欄位輸出四分位距Q1、Q2、Q3、Q4"""
-
-        if np.isnan(row[colName]):
-            return 'Q1'
-
-        if row[colName] < self._Q1:
-            return 'Q1'
-        elif row[colName] >= self._Q1 and row[colName] < self._Q2:
-            return 'Q2'
-        elif row[colName] >= self._Q2 and row[colName] < self._Q3:
-            return 'Q3'
-        elif row[colName] >= self._Q3 and row[colName] < self._Q4:
-            return 'Q4'
-        elif row[colName] >= self._Q4 and row[colName] < self._Q5:
-            return 'Q5'
-        elif row[colName] >= self._Q5 and row[colName] < self._Q6:
-            return 'Q6'
-        elif row[colName] >= self._Q6 and row[colName] < self._Q7:
-            return 'Q7'
-        elif row[colName] >= self._Q7 and row[colName] < self._Q8:
-            return 'Q8'
-        elif row[colName] >= self._Q8 and row[colName] < self._Q9:
-            return 'Q9'
-        elif row[colName] > self._Q9:
-            return 'Q10'
-        pass
-
-    def calcuLevelQs(self, row: pd.Series, colName: str) -> pd.Series:
-        """衍生欄位輸出四分位距Q1、Q2、Q3、Q4"""
-        if self._QLevel == QLevel.Q4:
-            return self._calcuLevelQs_Q4(row, colName)
-        elif self._QLevel == QLevel.Q10:
-            return self._calcuLevelQs_Q10(row, colName)
-            pass
-
-    def calcuOutlierInfo(self, df: DataFrame) -> dict:
-        """字典輸出離群值lower、upper(只能計算Q4離群)"""
-        arr = []
-        ballDeferColumns = df.columns[self._cutFrt:self._cutEnd]
-        for column in ballDeferColumns:
-            arr.extend(df[column].values)
-            pass
-        arr = sorted(arr, key=lambda e: e)
-        npArr = np.array(arr)
-        Q1 = np.quantile(npArr, 0.25)
-        Q3 = np.quantile(npArr, 0.75)
-        IQR = Q3 - Q1
-
-        # 設定離散值範圍
-        # lower_bound ABS 連續6次0(或者1次也允許)
-        # 離散值程度1.5可做調整
-        lower = Q1 - self._lowerLimit * IQR
-        lower = abs(lower)
-        upper = Q3 + self._upperLimit * IQR
-        return {'lower': lower, 'upper': upper}
-        pass
-
-    pass
-
-
 class ICalcu(ABC):
 
     @property
@@ -244,8 +58,7 @@ class ICalcu(ABC):
     def includeColumns(self, value):
         self._includeColumns = value
 
-
-有無 def __init__(self, exportFile: ExportFile, convert: ConvertMark, quantile: Quantile, isToCsv=False, path=None, filename=None) -> None:
+    def __init__(self, exportFile: ExportFile, convert: ConvertMark, quantile: Quantile, isToCsv=False, path=None, filename=None) -> None:
         self._exportFile = exportFile
         self._convert = convert
         self._quantile = quantile
@@ -512,69 +325,27 @@ class DeferCalcu(ICalcu):
     pass
 
 
-class TestQuantile(unittest.TestCase):
-    def test_calcuOutlierInfo_Q4(self):
-        # arrange
-        quantile = Quantile(QLevel.Q4)
-        quantile.cutFrt = 0
-        quantile.cutEnd = 2
-
-        data = {'A': [1, 2, 3, 4, 5], 'B': [1, 2, 3, 4, 5]}
-        df = pd.DataFrame(data)
-        # act
-        quantileInfo = quantile.calcuOutlierInfo(df)
-        excepted = {'lower': 1, 'upper': 7}
-        # assert
-        self.assertDictEqual(quantileInfo, excepted)
-        pass
-
-    def test_calcuLevelQs_Q4(self):
-        # arrange
-        quantile = Quantile(QLevel.Q4)
-        data = {'A': [1, 2, 3], 'B': [1, 2, 3]}
-        df = pd.DataFrame(data)
-        # act
-        quantile.loadQInfo(df['A'])
-        df['level'] = df.apply(
-            lambda row: quantile.calcuLevelQs(row, 'A'), axis=1)
-        excepted = ['Q1', 'Q3', 'Q4']
-        # assert
-        self.assertCountEqual(df['level'].tolist(), excepted)
-        pass
-
-    def test_calcuLevelQs_Q10(self):
-        # arrange
-        quantile = Quantile(QLevel.Q10)
-        data = {'A': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]}
-        df = pd.DataFrame(data)
-        # act
-        quantile.loadQInfo(df['A'])
-        df['level'] = df.apply(
-            lambda row: quantile.calcuLevelQs(row, 'A'), axis=1)
-        excepted = ['Q1', 'Q2', 'Q3', 'Q4',
-                    'Q5', 'Q6', 'Q7', 'Q8', 'Q9', 'Q10']
-        # assert
-        self.assertCountEqual(df['level'].tolist(), excepted)
-        pass
-
-
 class TestTimesCalcu(unittest.TestCase):
+
+    def __init__(self, methodName='runTest', path=None):
+        super(TestTimesCalcu, self).__init__(methodName)
+        self._path = path
 
     def test_calcu_ball_df(self):
         """DataFrame balls相等結果"""
         mockExportFile = ExportFile()
         convert = BeginConvertMark()
-        quantile = Quantile()
+        quantile = Quantile(QLevel=QLevel.Q10)
         quantile.cutFrt = 0
         quantile.cutEnd = 39
         path = 'C:/Programs/bingo/bingo_scrapy/539_calcu'
         filename = 'timesBall.xlsx'
         timesCalcu = TimesCalcu(mockExportFile,  convert,
-                                quantile, True, path, filename)
+                                quantile, True, self._path, filename)
         timesCalcu.includeColumns = ['num', 'desc']
         # act
-        dbContext = db.MSSQLDbContext({'server': 'wpdb2.hihosting.hinet.net', 'user': 'p89880749_p89880749',
-                                       'password': 'Jonny1070607!@#$%', 'database': 'p89880749_test'})
+        dbContext = MSSQLDbContext({'server': 'wpdb2.hihosting.hinet.net', 'user': 'p89880749_p89880749',
+                                    'password': 'Jonny1070607!@#$%', 'database': 'p89880749_test'})
         rows = dbContext.select(
             'select drawNumberSize,lotteryDate from Daily539 ORDER BY period')
         inputs = list(map(lambda row: row['drawNumberSize'].split(','), rows))
@@ -590,19 +361,19 @@ class TestTimesCalcu(unittest.TestCase):
         # arrange
         mockExportFile = ExportFile()
         convert = ConvertMark()
-        quantile = Quantile()
+        quantile = Quantile(QLevel=QLevel.Q10)
         quantile.cutFrt = 0
         quantile.cutEnd = 19
         quantile.lowerLimit = 1.1
         path = 'C:/Programs/bingo/bingo_scrapy/539_calcu'
         filename = 'timesMark.xlsx'
         timesCalcu = TimesCalcu(mockExportFile,  convert,
-                                quantile, True, path, filename)
+                                quantile, True, self._path, filename)
         timesCalcu.includeColumns = ['num', 'desc']
 
         # act
-        dbContext = db.MSSQLDbContext({'server': 'wpdb2.hihosting.hinet.net', 'user': 'p89880749_p89880749',
-                                       'password': 'Jonny1070607!@#$%', 'database': 'p89880749_test'})
+        dbContext = MSSQLDbContext({'server': 'wpdb2.hihosting.hinet.net', 'user': 'p89880749_p89880749',
+                                    'password': 'Jonny1070607!@#$%', 'database': 'p89880749_test'})
         rows = dbContext.select(
             'select drawNumberSize,lotteryDate from Daily539 ORDER BY period')
         inputs = list(map(lambda row: row['drawNumberSize'].split(','), rows))
@@ -612,6 +383,10 @@ class TestTimesCalcu(unittest.TestCase):
 
 
 class TestDeferCalcu(unittest.TestCase):
+
+    def __init__(self, methodName: str = "runTest", path=None) -> None:
+        super(TestDeferCalcu, self).__init__(methodName)
+        self._path = path
 
     def test_calcu_ball_df(self):
         """DataFrame balls相等結果"""
@@ -623,11 +398,11 @@ class TestDeferCalcu(unittest.TestCase):
         path = 'C:/Programs/bingo/bingo_scrapy/539_calcu'
         filename = 'deferBall.xlsx'
         deferCalcu = DeferCalcu(mockExportFile,  convert,
-                                quantile, True, path, filename)
+                                quantile, True, self._path, filename)
         deferCalcu.includeColumns = ['markOutliers', 'varQ']
         # act
-        dbContext = db.MSSQLDbContext({'server': 'wpdb2.hihosting.hinet.net', 'user': 'p89880749_p89880749',
-                                       'password': 'Jonny1070607!@#$%', 'database': 'p89880749_test'})
+        dbContext = MSSQLDbContext({'server': 'wpdb2.hihosting.hinet.net', 'user': 'p89880749_p89880749',
+                                    'password': 'Jonny1070607!@#$%', 'database': 'p89880749_test'})
         rows = dbContext.select(
             'select drawNumberSize,lotteryDate from Daily539 ORDER BY period')
         inputs = list(map(lambda row: row['drawNumberSize'].split(','), rows))
@@ -649,11 +424,11 @@ class TestDeferCalcu(unittest.TestCase):
         path = 'C:/Programs/bingo/bingo_scrapy/539_calcu'
         filename = 'deferMark.xlsx'
         deferCalcu = DeferCalcu(mockExportFile,  convert,
-                                quantile, True, path, filename)
+                                quantile, True, self._path, filename)
         deferCalcu.includeColumns = ['markOutliers', 'varQ']
         # act
-        dbContext = db.MSSQLDbContext({'server': 'wpdb2.hihosting.hinet.net', 'user': 'p89880749_p89880749',
-                                       'password': 'Jonny1070607!@#$%', 'database': 'p89880749_test'})
+        dbContext = MSSQLDbContext({'server': 'wpdb2.hihosting.hinet.net', 'user': 'p89880749_p89880749',
+                                    'password': 'Jonny1070607!@#$%', 'database': 'p89880749_test'})
         rows = dbContext.select(
             'select drawNumberSize,lotteryDate from Daily539 ORDER BY period')
         inputs = list(map(lambda row: row['drawNumberSize'].split(','), rows))
@@ -703,6 +478,9 @@ class TestDeferCalcu(unittest.TestCase):
 
 class TestContinueCalcu(unittest.TestCase):
 
+    def __init__(self) -> None:
+        self._path = 'C:/Programs/bingo/bingo_scrapy/calcu_539/test_data'
+
     def test_calcu_ball_df(self):
         """DataFrame balls相等結果"""
         # arrange
@@ -717,8 +495,8 @@ class TestContinueCalcu(unittest.TestCase):
                                       quantile, True, path, filename)
         continueCalcu.includeColumns = ['markOutliers', 'varQ']
         # act
-        dbContext = db.MSSQLDbContext({'server': 'wpdb2.hihosting.hinet.net', 'user': 'p89880749_p89880749',
-                                       'password': 'Jonny1070607!@#$%', 'database': 'p89880749_test'})
+        dbContext = MSSQLDbContext({'server': 'wpdb2.hihosting.hinet.net', 'user': 'p89880749_p89880749',
+                                    'password': 'Jonny1070607!@#$%', 'database': 'p89880749_test'})
         rows = dbContext.select(
             'select drawNumberSize,lotteryDate from Daily539 ORDER BY period')
         inputs = list(map(lambda row: row['drawNumberSize'].split(','), rows))
@@ -740,8 +518,8 @@ class TestContinueCalcu(unittest.TestCase):
                                       quantile, True, path, filename)
         continueCalcu.includeColumns = ['markOutliers', 'varQ']
         # act
-        dbContext = db.MSSQLDbContext({'server': 'wpdb2.hihosting.hinet.net', 'user': 'p89880749_p89880749',
-                                       'password': 'Jonny1070607!@#$%', 'database': 'p89880749_test'})
+        dbContext = MSSQLDbContext({'server': 'wpdb2.hihosting.hinet.net', 'user': 'p89880749_p89880749',
+                                    'password': 'Jonny1070607!@#$%', 'database': 'p89880749_test'})
         rows = dbContext.select(
             'select drawNumberSize,lotteryDate from Daily539 ORDER BY period')
         inputs = list(map(lambda row: row['drawNumberSize'].split(','), rows))
@@ -752,36 +530,19 @@ class TestContinueCalcu(unittest.TestCase):
 
 if __name__ == '__main__':
 
-    # region calcu workflow
-
-    # dbContext = db.MSSQLDbContext({'server': 'wpdb2.hihosting.hinet.net', 'user': 'p89880749_p89880749',
-    #                                'password': 'Jonny1070607!@#$%', 'database': 'p89880749_test'})
-    # rows = dbContext.select(
-    #     'select drawNumberSize,lotteryDate from Daily539 ORDER BY period')
-    # inputs = list(map(lambda row: row['drawNumberSize'].split(','), rows))
-
-    # endregion
-
     # region test case
 
     try:
         suite = unittest.TestSuite()
-        # suite.addTest(TestQuantile('test_calcuOutlierInfo_Q4'))
-        # suite.addTest(TestQuantile('test_calcuLevelQs_Q4'))
-        # suite.addTest(TestQuantile('test_calcuLevelQs_Q10'))
-        # suite.addTest(TestConvertMark('test_ballToMark'))
-        # suite.addTest(TestConvertMark('test_markToBalls'))
-        # suite.addTest(TestConvertOddEvenMark('test_ballToMark'))
-        # suite.addTest(TestConvertOddEvenMark('test_markToBalls'))
+        path = 'C:/Programs/bingo/bingo_scrapy/calcu_539/test_data'
+        # suite.addTest(TestTimesCalcu('test_calcu_ball_df', path=path))
+        # suite.addTest(TestTimesCalcu('test_calcu_mark_df', path=path))
+        suite.addTest(TestDeferCalcu('test_calcu_mark_df', path=path))
+        suite.addTest(TestDeferCalcu('test_calcu_ball_df', path=path))
 
-        # suite.addTest(TestTimesCalcu('test_calcu_ball_df'))
-        # suite.addTest(TestTimesCalcu('test_calcu_mark_df'))
-        # suite.addTest(TestDeferCalcu('test_calcu_mark_df'))
-        # suite.addTest(TestDeferCalcu('test_calcu_ball_df'))
-
+        # not ok
         # suite.addTest(TestContinueCalcu('test_calcu_ball_df'))
         # suite.addTest(TestContinueCalcu('test_calcu_mark_df'))
-
         # suite.addTest(TestDeferCalcu('test_to_csv_df'))
         # suite.addTest(TestDeferCalcu('test_calcu_3mean'))
         runner = unittest.TextTestRunner(verbosity=2)

@@ -1037,30 +1037,33 @@ if __name__ == '__main__':
     # endregion
 
     # region 訓練、測試集
-    import numpy as np
-    from sklearn.model_selection import train_test_split
+    # import numpy as np
+    # from sklearn.model_selection import train_test_split
 
-    # 生成示例數據
-    data = np.array([
-        [1, 1.5],
-        [2, 1.7],
-        [3, 3.2],
-        [4, 4.5],
-        [5, 5.0],
-        [6, 6.1],
-        [7, 7.4],
-        [8, 8.2],
-        [9, 9.0],
-        [10, 10.1]
-    ])
+    # # 生成示例數據
+    # data = np.array([
+    #     [1, 1.5],
+    #     [2, 1.7],
+    #     [3, 3.2],
+    #     [4, 4.5],
+    #     [5, 5.0],
+    #     [6, 6.1],
+    #     [7, 7.4],
+    #     [8, 8.2],
+    #     [9, 9.0],
+    #     [10, 10.1]
+    # ])
 
-    # 分割數據集
-    train_data, test_data = train_test_split(
-        data, test_size=0.2, random_state=32)
+    # # 分割數據集
+    # train_data, test_data = train_test_split(
+    #     data, test_size=0.2, random_state=32)
 
-    print('訓練集:', train_data)
-    print('測試集:', test_data)
+    # print('訓練集:', train_data)
+    # print('測試集:', test_data)
     # endregion
+
+    print("")
+    print("")
 
     # region calcu workflow
 

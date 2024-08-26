@@ -4,11 +4,10 @@ from typing import List
 import numpy as np
 import pandas as pd
 from pandas import DataFrame, Series
-from calcu import ExportFile, DeferCalcu, TimesCalcu, ConvertMark, Quantile, BeginConvertMark, DfInfo, QLevel, ConvertOddEvenMark
-import db
-from match import FiveThreeNineMatch, MatchInfo
-from prize_539 import FiveThreeNinePrize
 from exclude import StateExclude
+from db.db import MSSQLDbContext
+from calcu_539.prize.prize_539 import FiveThreeNinePrize, FiveThreeNineMatch
+from calcu_539.algorithm.calcu import DeferCalcu, TimesCalcu, ExportFile
 
 
 class FiveThreeNineSign:
@@ -200,8 +199,8 @@ class FiveThreeNineSign:
 if __name__ == '__main__':
 
     # region db info
-    dbContext = db.MSSQLDbContext({'server': 'wpdb2.hihosting.hinet.net', 'user': 'p89880749_p89880749',
-                                   'password': 'Jonny1070607!@#$%', 'database': 'p89880749_test'})
+    dbContext = MSSQLDbContext({'server': 'wpdb2.hihosting.hinet.net', 'user': 'p89880749_p89880749',
+                                'password': 'Jonny1070607!@#$%', 'database': 'p89880749_test'})
     rows = dbContext.select(
         'select drawNumberSize,lotteryDate from Daily539 ORDER BY period')
     inputs = list(map(lambda row: row['drawNumberSize'].split(','), rows))
