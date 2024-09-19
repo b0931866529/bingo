@@ -4,6 +4,7 @@ import pandas as pd
 from pandas import Series, DataFrame
 import inspect
 import re
+import itertools
 from calcu_539.algorithm.calcu_old import DeferCalcu, QLevel, TimesCalcu, DfInfo
 from calcu_539.algorithm.mark_old import BeginConvertMark, ConvertMark, ConvertOddEvenMark
 from calcu_539.excel.exportFile import ExportFile
@@ -27,6 +28,22 @@ class Sign539ColdOverlay:
         """
         self._filter_function = filter_function
         self._obtain_ball_number = obtain_ball_number
+
+    def _calcuFrt(self, row: pd.Series):
+        order = 0
+        matchTime = 0
+        if row[('times', 'asc')] == None:
+            return 0
+        for asc in row[('times', 'asc')]:
+            if any(asc == num for num in row[('times', 'num')]):
+                order += 1
+                matchTime += 1
+            else:
+                order += 1
+            if matchTime == 2:
+                return order
+        return order
+        pass
 
     def sign(self, dfs: List[DataFrame], dfTimes: DataFrame, deferKeys: List[str], timesKey: str) -> DfInfo:
         """
@@ -74,6 +91,8 @@ class Sign539ColdOverlay:
         # dfSign = dfSign.append(row, ignore_index=True)
         # endregion
 
+        dfSign['orderMatch'] = dfSign.apply(
+            lambda row: self._calcuFrt(row), axis=1)
         dfSign['takeBalls'] = dfSign.apply(
             lambda row: self._filter_function(row), axis=1)
         dfSign['signBall2Ds'] = dfSign.apply(
@@ -97,15 +116,27 @@ if __name__ == '__main__':
         # 可透過號碼數量來衡量權重
         # limit 越大、組數越小 要簽越少
         # limit 越小、組數越大 可簽越多
-        # Example implementation of the filter function
+        # asc weight
+        takeQty = 5
+        takeBalls = []
         if row[('index', '')] is None or row[('index', '')] < 10:
             return []
-        takeBalls = row['times', 'num'][:3]
+        takeBalls = row['times', 'asc'][:takeQty]
+        # for num in nums:
+        #     if num < 10:
+        #         takeQty = 3
 
         return takeBalls
 
     def example_obtain_ball_number(keys: List[str]) -> List[List[str]]:
-        signBall2Ds = [['02', '11'], ['21', '30'], ['06', '08']]
+        if len(keys) == 0:
+            return []
+        tpCombinations = list(itertools.product(keys, repeat=2))
+        combinations = [list(tp) for tp in tpCombinations]
+        signBall2Ds = []
+        for arr in combinations:
+            if any(len(set(arr + ele)) == 2 for ele in signBall2Ds) == False and arr[0] != arr[1]:
+                signBall2Ds.append(arr)
         return signBall2Ds
 
     # region db info
