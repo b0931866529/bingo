@@ -29,7 +29,7 @@ class FeedBack539:
         用開頭期數+測試區間取出要測試期數
         sign 簽注號碼暫時先寫死留接口 每期2維array,內有2 array 1~39亂數 [['01','02','03','04','05'],['11','12','13','14','15']]
         用簽注號碼和取出期數用現有期數去計算獲利FiveThreeNineMatch物件可計算結果
-        return DataColumn 期數:List[str],簽注號碼:List[List[str]],計算結果:MatchInfo,profit:int
+        return DataColumn 期數:List[str],簽注號碼:List[List[str]],計算結果:MatchInfo,profit:int,參數資訊:List[str]
         """
         pass
     pass

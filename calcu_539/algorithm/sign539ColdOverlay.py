@@ -91,6 +91,17 @@ class Sign539ColdOverlay:
         # dfSign = dfSign.append(row, ignore_index=True)
         # endregion
 
+        import inspect
+        # Get the signature of the function
+        signature = inspect.signature(self._filter_function)
+        # Get the parameters of the function
+        parameters = signature.parameters
+
+        # Print the number of parameters and their types
+        print(f"Number of parameters: {len(parameters)}")
+        for name, param in parameters.items():
+            print(f"Parameter name: {name}, Type: {param.annotation}")
+
         dfSign['orderMatch'] = dfSign.apply(
             lambda row: self._calcuFrt(row), axis=1)
         dfSign['takeBalls'] = dfSign.apply(

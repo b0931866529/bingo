@@ -11,6 +11,8 @@ from pymongo import InsertOne, DeleteOne, ReplaceOne
 from datetime import date, datetime
 import pymssql
 
+# from bingo_scrapy.bingo_scrapy.spiders import bingo
+
 
 class IDbContext(ABC):
 
@@ -87,6 +89,7 @@ class MongoDbContext(IDbContext):
         #     self.setErr(e)
         # finally:
         #     insert_session.end_session()
+        pass
 
     def Find(self, DBCollection, DBQuery={}):
         collection = self.__mongoDB[DBCollection]
@@ -111,9 +114,66 @@ class MongoDbContext(IDbContext):
 # 模組測試
 if __name__ == '__main__':
 
+    DBStr = "mongodb://localhost:27017/"
+    # print( "資料庫(DBStr):", DBStr)
+
+    client = pymongo.MongoClient(DBStr)
+
+    # Create database and collection
+
+    # region stragey
+    # endregion
+
+    # region bingo insert data
+    db = client['bingo']
+    bingo_collection = db['bingo']
+    bingo_data = {
+        "Name": "202409_三星週期打法",
+        "TradeDate": datetime(2024, 9, 16),
+        "Describe": "先領完上次的錢發現輸不多，開始不斷用三星沒有上倍數去拚，有設定鬧鐘定期換牌，中了幾個周期下來收尾",
+        "Profit": 2000,
+        "FeedBack1": "遵守不連期規則、定期換牌、周期跑到就走，不以賺小而放棄。",
+    }
+    # bingo_collection.insert_one(bingo_data)
+    # bingo_collection.update_one({"Name": "202409_四星打法"}, {
+    #                             "$set": {"TradeDate": datetime(2024, 9, 15)}})
+    # queryKey = {'Name': '202409_四星打法'}
+    queryKey = {}
+    results = bingo_collection.find(queryKey)
+
+    for result in results:
+        print("")
+    # endregion
+
+    #
+    # region option Insert data
+    # db = client['trade']
+    # trade_collection = db['option']
+    # # trade_data = {
+    # #     "Name": "22100_put_0904",
+    # #     "Qty": "1",
+    # #     "TradeDate": datetime(2024, 9, 23, 8, 50),
+    # #     "Describe": "已經開盤看其沒有漲很多，並且有點萎縮感，想到日圓升值和以黎，感覺會再崩一次但不肯定時機，看了一下最接近履約成本價很低，120左右，再往下一個檻大概90因此就購買",
+    # #     "Cost": 4500,
+    # #     "Profit": 2000,
+    # # }
+    # # trade_collection.insert_one(trade_data)
+    # name_value = "22100_put_0904"
+    # results = trade_collection.find({"Name": name_value})
+
+    # for result in results:
+    #     print("")
+    # endregion
+
+    # List all databases
+    # for db_name in client.list_database_names():
+    #     if not db_name == 'admin':
+    #         client.drop_database(db_name)
+    # dbs = client.list_database_names()
+    print("")
+
     # 將資料轉成日期格式
     # 設定日期>型態
-
     # region mongodb
 
     # # 宣告資料庫
