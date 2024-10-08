@@ -118,37 +118,37 @@ if __name__ == '__main__':
     # print( "資料庫(DBStr):", DBStr)
 
     client = pymongo.MongoClient(DBStr)
-
+    db = client['trade']
     # Create database and collection
 
     # region stragey
     # endregion
 
     # region bingo insert data
-    db = client['bingo']
     bingo_collection = db['bingo']
-    bingo_data = {
-        "Name": "202409_三星週期打法",
-        "TradeDate": datetime(2024, 9, 16),
-        "Describe": "先領完上次的錢發現輸不多，開始不斷用三星沒有上倍數去拚，有設定鬧鐘定期換牌，中了幾個周期下來收尾",
-        "Profit": 2000,
-        "FeedBack1": "遵守不連期規則、定期換牌、周期跑到就走，不以賺小而放棄。",
-    }
-    # bingo_collection.insert_one(bingo_data)
-    # bingo_collection.update_one({"Name": "202409_四星打法"}, {
-    #                             "$set": {"TradeDate": datetime(2024, 9, 15)}})
-    # queryKey = {'Name': '202409_四星打法'}
+    # # bingo_data = {
+    # #     "Name": "202409_三星週期打法",
+    # #     "TradeDate": datetime(2024, 9, 16),
+    # #     "Describe": "先領完上次的錢發現輸不多，開始不斷用三星沒有上倍數去拚，有設定鬧鐘定期換牌，中了幾個周期下來收尾",
+    # #     "Profit": 2000,
+    # #     "FeedBack1": "遵守不連期規則、定期換牌、周期跑到就走，不以賺小而放棄。",
+    # # }
+    # # # bingo_collection.insert_one(bingo_data)
+    # insert_result = bingo_collection.insert_many(results_list)
+    # # # bingo_collection.update_one({"Name": "202409_四星打法"}, {
+    # # #                             "$set": {"TradeDate": datetime(2024, 9, 15)}})
+    # # # queryKey = {'Name': '202409_四星打法'}
     queryKey = {}
     results = bingo_collection.find(queryKey)
-
-    for result in results:
+    results_list = list(results)
+    for result in results_list:
         print("")
     # endregion
 
     #
     # region option Insert data
-    # db = client['trade']
-    # trade_collection = db['option']
+
+    option_collection = db['option']
     # # trade_data = {
     # #     "Name": "22100_put_0904",
     # #     "Qty": "1",
@@ -157,12 +157,17 @@ if __name__ == '__main__':
     # #     "Cost": 4500,
     # #     "Profit": 2000,
     # # }
-    # # trade_collection.insert_one(trade_data)
+    # # option_collection.insert_one(trade_data)
     # name_value = "22100_put_0904"
     # results = trade_collection.find({"Name": name_value})
+    results = option_collection.find({})
+    results_list = list(results)
+    for result in results_list:
+        print("")
+    # endregion
 
-    # for result in results:
-    #     print("")
+    # region select data to excel
+
     # endregion
 
     # List all databases
